@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services'
 /*
 You might have to download JDK8 and set JAVA8_HOME (or set the jdk to Java 8 via Project Structure).
 For detailed instructions, see https://github.com/evant/gradle-retrolambda
@@ -34,7 +33,8 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile (
             'com.android.support:appcompat-v7:23.1.1',
-            'com.google.android.gms:play-services:8.3.0',
+            'com.amazonaws:aws-android-sdk-s3:2.2.10',
+            'com.google.guava:guava:19.0',
             'io.reactivex:rxandroid:1.0.1',
             'io.reactivex:rxjava:1.0.16',
             'io.reactivex:rxjava-async-util:0.21.0',

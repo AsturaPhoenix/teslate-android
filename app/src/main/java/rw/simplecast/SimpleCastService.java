@@ -17,20 +17,17 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.drive.Drive;
-import com.google.android.gms.drive.DriveContents;
-import com.google.android.gms.drive.DriveFile;
-import com.google.android.gms.drive.Metadata;
-import com.google.android.gms.drive.MetadataChangeSet;
-import com.google.android.gms.drive.query.Filters;
-import com.google.android.gms.drive.query.Query;
-import com.google.android.gms.drive.query.SearchableField;
+import com.cloudinary.Cloudinary;
+import com.google.common.collect.ImmutableMap;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.util.Arrays;
+
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
+import rx.util.async.Async;
 
 public class SimpleCastService extends Service {
     public static final String
@@ -39,7 +36,11 @@ public class SimpleCastService extends Service {
 
     public static boolean sRunning;
 
-    public static GoogleApiClient mG;
+    private static final ImmutableMap<String, String> CLOUDINARY_CONFIG = ImmutableMap.of(
+            "cloud_name", "lmuapu9iq",
+            "api_key", "927145266681416",
+            "api_secret", "uTijwScXIVwYUNYfeenCzscWH4U"
+    );
 
     private MediaProjectionManager mProjectionManager;
     private MediaProjection mProjection;
@@ -51,6 +52,8 @@ public class SimpleCastService extends Service {
 
     private Handler mHandler;
     private Runnable mProclp = this::proclp;
+
+    private Cloudinary mCloudinary;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -69,6 +72,8 @@ public class SimpleCastService extends Service {
         mDisplay = mProjection.createVirtualDisplay("SimpleCast", w, h, 96,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, mImageReader.getSurface(), null, null);
 
+        mCloudinary = new Cloudinary(CLOUDINARY_CONFIG);
+
         mHandler = new Handler();
         proclp();
 
@@ -84,6 +89,7 @@ public class SimpleCastService extends Service {
     @Override
     public void onDestroy() {
         mHandler.removeCallbacks(mProclp);
+        mHandler = null;
         mDisplay.release();
         mProjection.stop();
         mImageReader.close();
@@ -93,12 +99,10 @@ public class SimpleCastService extends Service {
 
     private void proclp() {
         try {
-            if (mG != null) {
-                final byte[] data = snapshot();
-                if (data != null && !Arrays.equals(data, mLast)) {
-                    upload(data);
-                    return;
-                }
+            final byte[] data = snapshot();
+            if (data != null && !Arrays.equals(data, mLast)) {
+                upload(data);
+                return;
             }
             queueNext();
         } catch (final RuntimeException e) {
@@ -109,7 +113,9 @@ public class SimpleCastService extends Service {
     }
 
     private void queueNext() {
-        mHandler.postDelayed(mProclp, 2000);
+        if (mHandler != null) {
+            mHandler.postDelayed(mProclp, 500);
+        }
     }
 
     private byte[] snapshot() {
@@ -125,68 +131,30 @@ public class SimpleCastService extends Service {
 
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
-        bmp.compress(Bitmap.CompressFormat.PNG, 96, bout);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 50, bout);
         return bout.toByteArray();
     }
 
-    private boolean write(final byte[] data, final DriveContents target) {
-        try {
-            target.getOutputStream().write(data);
-            return true;
-        } catch (final IOException e) {
-            Toast.makeText(this, "Failed to write drive contents.", Toast.LENGTH_LONG)
-                    .show();
-            return false;
-        }
-    }
-
     private void upload(byte[] data) {
-        final MetadataChangeSet md = new MetadataChangeSet.Builder()
-                .setMimeType("image/png")
-                .setTitle("SimpleCast.png")
-                .build();
-
-        Drive.DriveApi.query(mG, new Query.Builder()
-                .addFilter(Filters.eq(SearchableField.TITLE, "SimpleCast.png"))
-                .addFilter(Filters.eq(SearchableField.TRASHED, false))
-                .build()).setResultCallback(qResult -> {
-            Log.i("SIMPLECAST", "Found " + qResult.getMetadataBuffer().getCount() + " matches");
-            if (qResult.getMetadataBuffer().getCount() == 0) {
-                Drive.DriveApi.newDriveContents(mG)
-                        .setResultCallback(cResult -> {
-                            if (!cResult.getStatus().isSuccess()) {
-                                Toast.makeText(this, "Failed to create drive contents.",
-                                        Toast.LENGTH_LONG).show();
-                                return;
-                            }
-
-                            write(data, cResult.getDriveContents());
-                            Drive.DriveApi.getRootFolder(mG)
-                                    .createFile(mG, md, cResult.getDriveContents())
-                                    .setResultCallback(r -> {
-                                        mLast = data;
-                                        queueNext();
-                                    });
-                        });
-            } else {
-                final Metadata mmd = qResult.getMetadataBuffer().get(0);
-                mmd.getDriveId()
-                        .asDriveFile()
-                        .open(mG, DriveFile.MODE_WRITE_ONLY, null)
-                        .setResultCallback(oResult -> {
-                            if (write(data, oResult.getDriveContents())) {
-                                oResult.getDriveContents().commit(mG, md)
-                                        .setResultCallback(r -> {
-                                            mLast = data;
-                                            queueNext();
-                                        });
-                            } else {
-                                oResult.getDriveContents().discard(mG);
-                                queueNext();
-                            }
-                        });
+        Async.start(() -> {
+            try {
+                Log.i("SIMPLECAST", "Uploading...");
+                mCloudinary.uploader().upload(data, ImmutableMap.of(
+                        "public_id", "nautilus",
+                        "invalidate", "true"));
+            } catch (final IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-            qResult.release();
-        });
+            return null;
+        }, Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        x -> queueNext(),
+                        e -> {
+                            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+                            stopSelf();
+                        }
+                );
     }
 }

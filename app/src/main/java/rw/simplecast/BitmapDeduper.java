@@ -4,57 +4,67 @@
 
 package rw.simplecast;
 
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 
 import rx.functions.Func1;
 
 public class BitmapDeduper implements Func1<Bitmap, Boolean> {
-    public static final int COLOR_THRESHOLD = 32;
-
-    private static boolean diff(int a, int b) {
-        return Math.abs(Color.red(a) - Color.red(b)) > COLOR_THRESHOLD ||
-                Math.abs(Color.green(a) - Color.green(b)) > COLOR_THRESHOLD ||
-                Math.abs(Color.blue(a) - Color.blue(b)) > COLOR_THRESHOLD;
+    private static boolean diff(final int a, final int b, final int threshold) {
+        return Math.abs(Color.red(a) - Color.red(b)) > threshold ||
+                Math.abs(Color.green(a) - Color.green(b)) > threshold ||
+                Math.abs(Color.blue(a) - Color.blue(b)) > threshold;
     }
 
-    private final int mPxThreshold;
+    private final String mName;
+    private final SharedPreferences mPrefs;
+    private final String mFrameThreshKey, mColorThreshKey;
+    private final float mFrameThreshDefault;
+    private final int mColorThreshDefault;
 
-    public BitmapDeduper(final int pxThreshold) {
-        mPxThreshold = pxThreshold;
+    public BitmapDeduper(final String name, final SharedPreferences prefs,
+                         final String frameThreshKey, final float frameThreshDefault,
+                         final String colorThreshKey, final int colorThreshDefault) {
+        mName = name;
+        mPrefs = prefs;
+        mFrameThreshKey = frameThreshKey;
+        mFrameThreshDefault = frameThreshDefault;
+        mColorThreshKey = colorThreshKey;
+        mColorThreshDefault = colorThreshDefault;
     }
 
     private boolean diff(final Bitmap a, final Bitmap b) {
+        final int colorThreshold = mPrefs.getInt(mColorThreshKey, mColorThreshDefault);
+        final int pxThreshold = (int)(mPrefs.getFloat(mFrameThreshKey, mFrameThreshDefault)
+                * a.getHeight() * a.getWidth());
+
         int acc = 0;
         for (int y = 0; y < a.getHeight(); y++) {
             for (int x = 0; x < a.getWidth(); x++) {
-                if (a.getPixel(x, y) != b.getPixel(x, y)) {
+                if (diff(a.getPixel(x, y), b.getPixel(x, y), colorThreshold)) {
                     acc++;
                 }
-                if (acc > mPxThreshold) {
-                    return true;
-                }
             }
+        }
+        if (acc > pxThreshold) {
+            System.out.println(mName + " diff: " + acc * 100f / (a.getWidth() * a.getHeight()) + "%");
+            return true;
+        } else if (acc > pxThreshold / 2) {
+            System.out.println(mName + " diff: " + acc * 100f / (a.getWidth() * a.getHeight()) + "% (below threshold)");
         }
 
         return false;
     }
 
-    private Bitmap mLast, mLastDuplicate;
-
-    public Bitmap getLastDuplicate() {
-        return mLastDuplicate;
-    }
+    private Bitmap mLast;
 
     @Override
     public Boolean call(final Bitmap bitmap) {
-        final boolean diff = mLast == null ||
+        boolean diff = mLast == null ||
                 mLast.getWidth() != bitmap.getWidth() ||
                 mLast.getHeight() != bitmap.getHeight() ||
                 diff(mLast, bitmap);
-        if (diff) {
-            mLastDuplicate = mLast;
-        }
         mLast = bitmap;
         return diff;
     }

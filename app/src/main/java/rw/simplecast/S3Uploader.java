@@ -36,6 +36,11 @@ public class S3Uploader extends Subscriber<byte[]> {
     }
 
     @Override
+    public void onStart() {
+        request(1);
+    }
+
+    @Override
     public void onNext(final byte[] bytes) {
         try {
             Log.i("SIMPLECAST", "Uploading " + mName + "...");
@@ -44,9 +49,11 @@ public class S3Uploader extends Subscriber<byte[]> {
             mS3.putObject(new PutObjectRequest("simplecast", mName,
                     new ByteArrayInputStream(bytes), md)
                     .withCannedAcl(CannedAccessControlList.PublicRead));
+            Log.i("SIMPLECAST", "Uploaded " + mName);
         } catch (final RuntimeException e) {
             mOnError.call(e);
         }
+        request(1);
     }
 
     @Override

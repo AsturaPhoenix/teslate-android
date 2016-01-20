@@ -20,13 +20,20 @@
         </activity>
 
         <service
-            android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
-            android:enabled="true" />
-
-        <service
             android:name=".SimpleCastService"
             android:enabled="true"
             android:exported="true" />
+
+        <receiver
+            android:name=".MessageReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+                <action android:name="com.google.android.c2dm.intent.REGISTER" />
+                <category android:name="rw.simplecast" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

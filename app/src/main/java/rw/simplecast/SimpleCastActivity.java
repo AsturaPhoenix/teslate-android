@@ -5,8 +5,11 @@ import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class SimpleCastActivity extends AppCompatActivity {
     private static final int
@@ -21,6 +24,15 @@ public class SimpleCastActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_simple_cast);
+
+        final String lastError = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(SimpleCastService.PREF_LAST_ERROR, null);
+        final TextView txtLastError = (TextView)findViewById(R.id.lastError);
+        if (lastError != null) {
+            txtLastError.setText(lastError);
+        } else {
+            ((View)txtLastError.getParent()).setVisibility(View.INVISIBLE);
+        }
 
         mProjectionManager = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);

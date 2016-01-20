@@ -19,36 +19,32 @@ import rx.Observable;
 
 public class Snapshotter {
     public static Observable<Bitmap> create(final MediaProjection mediaProjection,
-                                            final int w, final int h) {
+                                            final long period, final int w, final int h) {
 
-        return Observable.<Observable<Bitmap>>create(s -> {
-            final ImageReader mImageReader = ImageReader.newInstance(w, h,
-                    ImageFormat.JPEG, 2);
-            final VirtualDisplay mDisplay = mediaProjection.createVirtualDisplay("SimpleCast", w, h,
-                    96, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, mImageReader.getSurface(), null,
+        return Observable.<Bitmap>create(s -> {
+            final ImageReader imageReader = ImageReader.newInstance(w, h,
+                    ImageFormat.JPEG, 3);
+            final VirtualDisplay display = mediaProjection.createVirtualDisplay("SimpleCast", w, h,
+                    96, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, imageReader.getSurface(), null,
                     null);
 
-            s.onNext(Observable.interval(0, 50, TimeUnit.MILLISECONDS)
+            s.add(Observable.interval(0, period, TimeUnit.MILLISECONDS)
                     .doOnUnsubscribe(() -> {
-                        mDisplay.release();
+                        display.release();
                         mediaProjection.stop();
-                        mImageReader.close();
+                        imageReader.close();
                     })
-                    .map(x -> {
+                    .subscribe(x -> {
                         final Bitmap bmp;
-                        try (final Image img = mImageReader.acquireLatestImage()) {
-                            if (img == null)
-                                return null;
-
+                        try (final Image img = imageReader.acquireLatestImage()) {
+                            if (img == null) return;
+                            bmp = Bitmap.createBitmap(img.getWidth(), img.getHeight(),
+                                    Bitmap.Config.ARGB_8888);
                             final Buffer buffer = img.getPlanes()[0].getBuffer().rewind();
-                            bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
                             bmp.copyPixelsFromBuffer(buffer);
                         }
-                        return bmp;
-                    })
-                    .filter(x -> x != null));
-        })
-                .flatMap(y -> y)
-                .share();
+                        s.onNext(bmp);
+                    }, s::onError));
+        }).share();
     }
 }

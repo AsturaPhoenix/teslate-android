@@ -21,8 +21,12 @@ android {
         versionName "1.0"
     }
     buildTypes {
+        debug {
+            multiDexEnabled true
+        }
         release {
             minifyEnabled false
+            multiDexEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -33,7 +37,9 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile (
             'com.android.support:appcompat-v7:23.1.1',
+            'com.android.support.test.uiautomator:uiautomator-v18:2.1.1',
             'com.amazonaws:aws-android-sdk-s3:2.2.10',
+            'com.amazonaws:aws-android-sdk-sns:2.2.10',
             'com.google.android.gms:play-services:8.4.0',
             'com.google.guava:guava:19.0',
             'io.reactivex:rxandroid:1.0.1',

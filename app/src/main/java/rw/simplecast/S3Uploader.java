@@ -6,7 +6,6 @@ package rw.simplecast;
 
 import android.util.Log;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
@@ -28,8 +27,7 @@ public class S3Uploader extends Subscriber<byte[]> {
     public S3Uploader(final String name, final Action1<Throwable> onError) {
         mName = name;
 
-        mS3 = new AmazonS3Client(new BasicAWSCredentials(
-                "AKIAIQ6JQD76M3IB65WQ", "aMTQhAVPZOiyP7NAg3soK3hn21dZAlGUnbMzA9uu"));
+        mS3 = new AmazonS3Client(Aws.CREDS);
         mS3.setRegion(Region.getRegion(Regions.US_WEST_1));
 
         mOnError = onError;

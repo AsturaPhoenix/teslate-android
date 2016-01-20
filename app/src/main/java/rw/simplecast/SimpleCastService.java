@@ -6,10 +6,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.projection.MediaProjectionManager;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
@@ -33,6 +33,7 @@ public class SimpleCastService extends Service {
             MP_RESULT = "MP_RESULT";
 
     public static final String
+            PREF_TOKEN = "TOKEN",
             PREF_LAST_ERROR = "LAST_ERROR",
             PREF_FRAME_THRESHOLD = "FRAME_THRESHOLD",
             PREF_FRAME_COLOR_THRESHOLD = "FRAME_COLOR_THRESHOLD",
@@ -52,7 +53,7 @@ public class SimpleCastService extends Service {
             DEFAULT_MIN_STABLE = 3500,
             DEFAULT_SCREEN_DELAY = 2500;
 
-    public static final int SCALE = 3;
+    public static final int SCALE = 6;
 
     public static boolean sRunning;
 
@@ -61,10 +62,7 @@ public class SimpleCastService extends Service {
         return bmp.compress(Bitmap.CompressFormat.JPEG, 45, bout) ? bout.toByteArray() : null;
     }
 
-    public static void processMessage(final Bundle content, final Context context) {
-
-    }
-
+    private SharedPreferences mPrefs;
     private Subscription mSubscription;
     private PublishSubject<Throwable> mErrors = PublishSubject.create();
 
@@ -99,28 +97,28 @@ public class SimpleCastService extends Service {
         final Intent mpIntent = (Intent) intent.getParcelableExtra(MP_INTENT);
         final int mpResult = intent.getIntExtra(MP_RESULT, 0);
 
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         final Observable<Bitmap> snaps = Snapshotter.create(
                 pm.getMediaProjection(mpResult, mpIntent),
-                SNAPSHOT_PERIOD, 144 * SCALE, 256 * SCALE);
+                SNAPSHOT_PERIOD, 72 * SCALE, 128 * SCALE);
 
-        final Observable<Bitmap> screens = snaps.filter(new BitmapDeduper("Screens", prefs,
+        final Observable<Bitmap> screens = snaps.filter(new BitmapDeduper("Screens", mPrefs,
                 PREF_SCREEN_THRESHOLD, DEFAULT_SCREEN_THRESHOLD,
                 PREF_SCREEN_COLOR_THRESHOLD, DEFAULT_SCREEN_COLOR_THRESHOLD))
                 .share();
 
-        final long screenStable = prefs.getLong(PREF_MIN_STABLE, DEFAULT_MIN_STABLE);
+        final long screenStable = mPrefs.getLong(PREF_MIN_STABLE, DEFAULT_MIN_STABLE);
 
         mSubscription = new CompositeSubscription(
-                snaps.filter(new BitmapDeduper("Frames", prefs,
+                snaps.filter(new BitmapDeduper("Frames", mPrefs,
                         PREF_FRAME_THRESHOLD, DEFAULT_FRAME_THRESHOLD,
                         PREF_FRAME_COLOR_THRESHOLD, DEFAULT_FRAME_COLOR_THRESHOLD))
                         .sample(FRAME_PERIOD, TimeUnit.MILLISECONDS, Schedulers.io())
                         .map(SimpleCastService::compress)
                         .filter(j -> j != null)
                         .subscribe(new S3Uploader("nautilus.jpg", this::onError)),
-                snaps.delay(prefs.getLong(PREF_SCREEN_DELAY, DEFAULT_SCREEN_DELAY),
+                snaps.delay(mPrefs.getLong(PREF_SCREEN_DELAY, DEFAULT_SCREEN_DELAY),
                         TimeUnit.MILLISECONDS)
                         .window(screens)
                         .concatMap(w -> w.takeLast(1))
@@ -132,16 +130,25 @@ public class SimpleCastService extends Service {
                         .subscribe(new S3Uploader("previous.jpg", this::onError))
         );
 
+        registerGcm();
+
         return START_NOT_STICKY;
     }
 
     private void registerGcm() {
-        Async.fromCallable(() -> {
-            final InstanceID instanceID = InstanceID.getInstance(this);
-            final String token = instanceID.getToken(getString(R.string.gcm_defaultSenderId),
-                    GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
-            return token;
-        });
+        Log.i("SIMPLECAST", "App ID: " + getString(R.string.google_app_id));
+        final String prefToken = mPrefs.getString(PREF_TOKEN, null);
+        (prefToken == null ?
+                Async.fromCallable(() -> InstanceID.getInstance(this).getToken(
+                        getString(R.string.gcm_defaultSenderId),
+                        GoogleCloudMessaging.INSTANCE_ID_SCOPE))
+                        .doOnNext(t -> mPrefs.edit().putString(PREF_TOKEN, t).apply()) :
+                Observable.just(prefToken))
+                .observeOn(Schedulers.io())
+                .subscribe(t -> {
+                    Log.i("SIMPLECAST", "GCM Token: " + t);
+                    RemoteInputService.subscribeToken(t);
+                }, this::onError);
     }
 
 

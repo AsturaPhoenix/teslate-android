@@ -2,6 +2,7 @@ package rw.simplecast;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -49,12 +50,29 @@ public class SimpleCastActivity extends AppCompatActivity {
 
     private void updateButton() {
         final Button toggle = (Button) findViewById(R.id.toggle);
+        final TextView inputStatus = (TextView) findViewById(R.id.inputStatus);
+
+        if (!RemoteInputService.isPossible()) {
+            inputStatus.setText("ADB injection required for remote input");
+            inputStatus.setTextColor(Color.RED);
+        }
+
         if (SimpleCastService.sRunning) {
+            if (RemoteInputService.isPossible()) {
+                inputStatus.setText("Remote input enabled");
+                inputStatus.setTextColor(Color.GREEN);
+            }
+
             toggle.setText("Stop Server");
             toggle.setOnClickListener(x -> {
                 stopService(new Intent(this, SimpleCastService.class));
             });
         } else {
+            if (RemoteInputService.isPossible()) {
+                inputStatus.setText("Remote input suspended");
+                inputStatus.setTextColor(Color.YELLOW);
+            }
+
             toggle.setText("Start Server");
             toggle.setOnClickListener(x -> {
                 startActivityForResult(mProjectionManager.createScreenCaptureIntent(),

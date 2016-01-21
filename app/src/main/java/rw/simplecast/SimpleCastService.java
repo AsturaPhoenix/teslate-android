@@ -132,6 +132,8 @@ public class SimpleCastService extends Service {
 
         registerGcm();
 
+        //startInstrumentation(new ComponentName(this, Instrumentation.class), null, null);
+
         return START_NOT_STICKY;
     }
 

@@ -3,7 +3,7 @@
     package="rw.simplecast">
 
     <instrumentation
-        android:name=".Instrumentation"
+        android:name="Instrumentation"
         android:targetPackage="rw.simplecast" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

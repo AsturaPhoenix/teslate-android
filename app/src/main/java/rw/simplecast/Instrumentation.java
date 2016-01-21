@@ -9,5 +9,9 @@ public class Instrumentation extends android.app.Instrumentation {
 
     public Instrumentation() {
         INSTANCE = this;
+        /*final Intent intent = new Intent();
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setComponent(new ComponentName("rw.simplecast", "rw.simplecast.SimpleCastActivity"));
+        getTargetContext().startActivity(intent);*/
     }
 }

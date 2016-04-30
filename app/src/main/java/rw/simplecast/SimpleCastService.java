@@ -48,8 +48,8 @@ public class SimpleCastService extends Service {
             DEFAULT_FRAME_COLOR_THRESHOLD = 32,
             DEFAULT_SCREEN_COLOR_THRESHOLD = 128;
     public static final long
-            SNAPSHOT_PERIOD = 250,
-            FRAME_PERIOD = 500,
+            SNAPSHOT_PERIOD = 200,
+            FRAME_PERIOD = 400,
             DEFAULT_MIN_STABLE = 3500,
             DEFAULT_SCREEN_DELAY = 2500;
 
@@ -117,7 +117,7 @@ public class SimpleCastService extends Service {
                         .sample(FRAME_PERIOD, TimeUnit.MILLISECONDS, Schedulers.io())
                         .map(SimpleCastService::compress)
                         .filter(j -> j != null)
-                        .subscribe(new S3Uploader("nautilus.jpg", this::onError)),
+                        .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError)),
                 snaps.delay(mPrefs.getLong(PREF_SCREEN_DELAY, DEFAULT_SCREEN_DELAY),
                         TimeUnit.MILLISECONDS)
                         .window(screens)
@@ -127,7 +127,7 @@ public class SimpleCastService extends Service {
                         .concatMap(w -> w.take(1))
                         .map(SimpleCastService::compress)
                         .filter(j -> j != null)
-                        .subscribe(new S3Uploader("previous.jpg", this::onError))
+                        .subscribe(new SimpleCastUploader("previous.jpg", this::onError))
         );
 
         registerGcm();

@@ -20,10 +20,9 @@ import rx.Observable;
 public class Snapshotter {
     public static Observable<Bitmap> create(final MediaProjection mediaProjection,
                                             final long period, final int w, final int h) {
-
         return Observable.<Bitmap>create(s -> {
             final ImageReader imageReader = ImageReader.newInstance(w, h,
-                    ImageFormat.JPEG, 3);
+                    ImageFormat.JPEG, 2);
             final VirtualDisplay display = mediaProjection.createVirtualDisplay("SimpleCast", w, h,
                     96, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, imageReader.getSurface(), null,
                     null);

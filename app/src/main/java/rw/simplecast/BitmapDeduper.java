@@ -23,6 +23,8 @@ public class BitmapDeduper implements Func1<Bitmap, Boolean> {
     private final float mFrameThreshDefault;
     private final int mColorThreshDefault;
 
+    private static final int res = 10;
+
     public BitmapDeduper(final String name, final SharedPreferences prefs,
                          final String frameThreshKey, final float frameThreshDefault,
                          final String colorThreshKey, final int colorThreshDefault) {
@@ -36,22 +38,23 @@ public class BitmapDeduper implements Func1<Bitmap, Boolean> {
 
     private boolean diff(final Bitmap a, final Bitmap b) {
         final int colorThreshold = mPrefs.getInt(mColorThreshKey, mColorThreshDefault);
+        final int denom = a .getHeight() / res * a.getWidth() / res;
         final int pxThreshold = (int)(mPrefs.getFloat(mFrameThreshKey, mFrameThreshDefault)
-                * a.getHeight() * a.getWidth());
+                * denom);
 
         int acc = 0;
-        for (int y = 0; y < a.getHeight(); y++) {
-            for (int x = 0; x < a.getWidth(); x++) {
+        for (int y = 0; y < a.getHeight(); y += res) {
+            for (int x = 0; x < a.getWidth(); x += res) {
                 if (diff(a.getPixel(x, y), b.getPixel(x, y), colorThreshold)) {
                     acc++;
                 }
             }
         }
         if (acc > pxThreshold) {
-            System.out.println(mName + " diff: " + acc * 100f / (a.getWidth() * a.getHeight()) + "%");
+            System.out.println(mName + " diff: " + acc * 100f / denom + "%");
             return true;
         } else if (acc > pxThreshold / 2) {
-            System.out.println(mName + " diff: " + acc * 100f / (a.getWidth() * a.getHeight()) + "% (below threshold)");
+            System.out.println(mName + " diff: " + acc * 100f / denom + "% (below threshold)");
         }
 
         return false;

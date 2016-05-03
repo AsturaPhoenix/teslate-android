@@ -15,16 +15,15 @@ import android.widget.Toast;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.android.gms.iid.InstanceID;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 
 import java.io.ByteArrayOutputStream;
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subscriptions.CompositeSubscription;
 import rx.util.async.Async;
 
 public class SimpleCastService extends Service {
@@ -35,23 +34,11 @@ public class SimpleCastService extends Service {
     public static final String
             PREF_TOKEN = "TOKEN",
             PREF_LAST_ERROR = "LAST_ERROR",
-            PREF_FRAME_THRESHOLD = "FRAME_THRESHOLD",
-            PREF_FRAME_COLOR_THRESHOLD = "FRAME_COLOR_THRESHOLD",
-            PREF_SCREEN_THRESHOLD = "SCREEN_THRESHOLD",
-            PREF_SCREEN_COLOR_THRESHOLD = "SCREEN_COLOR_THRESHOLD",
-            PREF_MIN_STABLE = "MIN_STABLE",
-            PREF_SCREEN_DELAY = "SCREEN_DELAY";
-    public static final float
-            DEFAULT_FRAME_THRESHOLD = .005f,
-            DEFAULT_SCREEN_THRESHOLD = .22f;
+            PREF_FRAME_COLOR_THRESHOLD = "FRAME_COLOR_THRESHOLD";
     public static final int
-            DEFAULT_FRAME_COLOR_THRESHOLD = 32,
-            DEFAULT_SCREEN_COLOR_THRESHOLD = 128;
+            DEFAULT_FRAME_COLOR_THRESHOLD = 8;
     public static final long
-            SNAPSHOT_PERIOD = 200,
-            FRAME_PERIOD = 400,
-            DEFAULT_MIN_STABLE = 3500,
-            DEFAULT_SCREEN_DELAY = 2500;
+            SNAPSHOT_PERIOD = 200;
 
     public static final int SCALE = 6;
 
@@ -94,7 +81,7 @@ public class SimpleCastService extends Service {
         final MediaProjectionManager pm = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);
 
-        final Intent mpIntent = (Intent) intent.getParcelableExtra(MP_INTENT);
+        final Intent mpIntent = intent.getParcelableExtra(MP_INTENT);
         final int mpResult = intent.getIntExtra(MP_RESULT, 0);
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -103,32 +90,12 @@ public class SimpleCastService extends Service {
                 pm.getMediaProjection(mpResult, mpIntent),
                 SNAPSHOT_PERIOD, 72 * SCALE, 128 * SCALE);
 
-        final Observable<Bitmap> screens = snaps.filter(new BitmapDeduper("Screens", mPrefs,
-                PREF_SCREEN_THRESHOLD, DEFAULT_SCREEN_THRESHOLD,
-                PREF_SCREEN_COLOR_THRESHOLD, DEFAULT_SCREEN_COLOR_THRESHOLD))
-                .share();
-
-        final long screenStable = mPrefs.getLong(PREF_MIN_STABLE, DEFAULT_MIN_STABLE);
-
-        mSubscription = new CompositeSubscription(
-                snaps.filter(new BitmapDeduper("Frames", mPrefs,
-                        PREF_FRAME_THRESHOLD, DEFAULT_FRAME_THRESHOLD,
+        mSubscription = snaps.map(new BitmapPatcher(mPrefs,
                         PREF_FRAME_COLOR_THRESHOLD, DEFAULT_FRAME_COLOR_THRESHOLD))
-                        .sample(FRAME_PERIOD, TimeUnit.MILLISECONDS, Schedulers.io())
-                        .map(SimpleCastService::compress)
-                        .filter(j -> j != null)
-                        .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError)),
-                snaps.delay(mPrefs.getLong(PREF_SCREEN_DELAY, DEFAULT_SCREEN_DELAY),
-                        TimeUnit.MILLISECONDS)
-                        .window(screens)
-                        .concatMap(w -> w.takeLast(1))
-                        .window(screens.debounce(screenStable, TimeUnit.MILLISECONDS,
-                                Schedulers.io()))
-                        .concatMap(w -> w.take(1))
-                        .map(SimpleCastService::compress)
-                        .filter(j -> j != null)
-                        .subscribe(new SimpleCastUploader("previous.jpg", this::onError))
-        );
+                        .filter(p -> !p.isEmpty())
+                        .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
+                        .observeOn(Schedulers.io())
+                        .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError));
 
         registerGcm();
 

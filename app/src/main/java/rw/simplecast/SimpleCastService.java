@@ -90,12 +90,14 @@ public class SimpleCastService extends Service {
                 pm.getMediaProjection(mpResult, mpIntent),
                 SNAPSHOT_PERIOD, 72 * SCALE, 128 * SCALE);
 
-        mSubscription = snaps.map(new BitmapPatcher(mPrefs,
+        mSubscription = snaps
+                .onBackpressureLatest()
+                .observeOn(Schedulers.io())
+                .map(new BitmapPatcher(mPrefs,
                         PREF_FRAME_COLOR_THRESHOLD, DEFAULT_FRAME_COLOR_THRESHOLD))
-                        .filter(p -> !p.isEmpty())
-                        .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
-                        .observeOn(Schedulers.io())
-                        .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError));
+                .filter(p -> !p.isEmpty())
+                .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
+                .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError));
 
         registerGcm();
 

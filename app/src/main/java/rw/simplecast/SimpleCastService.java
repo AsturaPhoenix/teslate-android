@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 
 import java.io.ByteArrayOutputStream;
 
+import lombok.RequiredArgsConstructor;
 import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -44,6 +45,20 @@ public class SimpleCastService extends Service {
 
     public static boolean sRunning;
 
+    @RequiredArgsConstructor
+    public static class Status {
+        public final long bytesSent;
+        public final long uptime;
+        public final int latency;
+        public final int lat16;
+    }
+
+    private static final PublishSubject<Status> sStatus = PublishSubject.create();
+
+    public static Observable<Status> getStatus() {
+        return sStatus;
+    }
+
     private static byte[] compress(final Bitmap bmp) {
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
         return bmp.compress(Bitmap.CompressFormat.JPEG, 45, bout) ? bout.toByteArray() : null;
@@ -52,13 +67,37 @@ public class SimpleCastService extends Service {
     private SharedPreferences mPrefs;
     private Subscription mSubscription;
     private PublishSubject<Throwable> mErrors = PublishSubject.create();
+    private int mPayloadSize;
+    private long mStartedAt;
+    private final int[] mLat16 = new int[16];
+    private int mLat16Ptr, mLat16Sum;
 
     private void onError(final Throwable t) {
         mErrors.onNext(t);
     }
 
+    private void onFatal(final Throwable t) {
+        onError(t);
+        stopSelf();
+    }
+
+    private void processMetrics(final SimpleCastUploader.Stats stats) {
+        mPayloadSize += stats.size;
+        mLat16Sum += stats.duration - mLat16[mLat16Ptr];
+        mLat16[mLat16Ptr] = stats.duration;
+        mLat16Ptr = (mLat16Ptr + 1) % 16;
+
+        sStatus.onNext(new Status(
+                mPayloadSize,
+                System.currentTimeMillis() - mStartedAt,
+                stats.duration,
+                mLat16Sum >> 4));
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        mStartedAt = System.currentTimeMillis();
+
         mErrors.observeOn(AndroidSchedulers.mainThread())
                 .distinctUntilChanged(Throwable::getMessage)
                 .subscribe(t -> {
@@ -97,7 +136,8 @@ public class SimpleCastService extends Service {
                         PREF_FRAME_COLOR_THRESHOLD, DEFAULT_FRAME_COLOR_THRESHOLD))
                 .filter(p -> !p.isEmpty())
                 .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
-                .subscribe(new SimpleCastUploader("nautilus.jpg", this::onError));
+                .map(new SimpleCastUploader("nautilus", this::onError))
+                .subscribe(this::processMetrics, this::onFatal);
 
         registerGcm();
 

@@ -13,37 +13,42 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
 
-import rx.Subscriber;
+import lombok.RequiredArgsConstructor;
 import rx.functions.Action1;
+import rx.functions.Func1;
 
-public class SimpleCastUploader extends Subscriber<Collection<Patch<byte[]>>> {
-    private final Action1<Throwable> mOnError;
+public class SimpleCastUploader
+        implements Func1<Collection<Patch<byte[]>>, SimpleCastUploader.Stats> {
+    @RequiredArgsConstructor
+    public static class Stats {
+        public final int size;
+        public final int duration;
+    }
+
     private final URL mEndpoint;
+    private final Action1<Throwable> mOnError;
 
     public SimpleCastUploader(final String name, final Action1<Throwable> onError) {
-        mOnError = onError;
         try {
-            mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/frame.jpeg");
+            mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/" + name +
+                    "/frame.jpeg");
         } catch (final MalformedURLException e) {
-            throw new IllegalArgumentException("Unable to connect to resource x", e);
+            throw new IllegalArgumentException("Unable to connect to resource " + name, e);
         }
+        mOnError = onError;
     }
 
     @Override
-    public void onStart() {
-        request(1);
-    }
-
-    @Override
-    public void onNext(final Collection<Patch<byte[]>> patches) {
+    public Stats call(final Collection<Patch<byte[]>> patches) {
+        final long startedAt = System.currentTimeMillis();
+        int size = 0;
         try {
             Log.i("SIMPLECAST", "Uploading frame " + mEndpoint + " ...");
-            final HttpURLConnection conn = (HttpURLConnection)mEndpoint.openConnection();
+            final HttpURLConnection conn = (HttpURLConnection) mEndpoint.openConnection();
             try {
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");
                 conn.setRequestProperty("Content-Type", "image/jpeg");
-                int size = 0;
                 try (final ObjectOutputStream o = new ObjectOutputStream(conn.getOutputStream())) {
                     for (final Patch<byte[]> p : patches) {
                         o.writeInt(p.pt.x);
@@ -56,22 +61,17 @@ public class SimpleCastUploader extends Subscriber<Collection<Patch<byte[]>>> {
                 Log.i("SIMPLECAST", "Uploaded frame " + mEndpoint +
                         " (" + conn.getResponseCode() + ", " + size + " B, " +
                         patches.size() + " patches)");
+                if (conn.getResponseCode() != 200) {
+                    mOnError.call(new IOException(conn.getResponseMessage() == null ?
+                            "HTTP " + conn.getResponseCode() :
+                            conn.getResponseMessage() + " (" + conn.getResponseCode() + ")"));
+                }
             } finally {
                 conn.disconnect();
             }
-        } catch (final IOException|RuntimeException e) {
+        } catch (final IOException | RuntimeException e) {
             mOnError.call(e);
         }
-
-        request(1);
-    }
-
-    @Override
-    public void onError(final Throwable e) {
-        mOnError.call(e);
-    }
-
-    @Override
-    public void onCompleted() {
+        return new Stats(size, (int)(System.currentTimeMillis() - startedAt));
     }
 }

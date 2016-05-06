@@ -23,7 +23,7 @@ public class SimpleCastUploader extends Subscriber<Collection<Patch<byte[]>>> {
     public SimpleCastUploader(final String name, final Action1<Throwable> onError) {
         mOnError = onError;
         try {
-            mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/" + name);
+            mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/frame.jpeg");
         } catch (final MalformedURLException e) {
             throw new IllegalArgumentException("Unable to connect to resource x", e);
         }

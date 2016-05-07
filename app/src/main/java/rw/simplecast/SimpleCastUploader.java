@@ -26,15 +26,18 @@ public class SimpleCastUploader
     }
 
     private final URL mEndpoint;
+    private final BitmapPatcher mPatcher;
     private final Action1<Throwable> mOnError;
 
-    public SimpleCastUploader(final String name, final Action1<Throwable> onError) {
+    public SimpleCastUploader(final String name, final BitmapPatcher patcher,
+                              final Action1<Throwable> onError) {
         try {
             mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/" + name +
                     "/frame.jpeg");
         } catch (final MalformedURLException e) {
             throw new IllegalArgumentException("Unable to connect to resource " + name, e);
         }
+        mPatcher = patcher;
         mOnError = onError;
     }
 
@@ -46,6 +49,8 @@ public class SimpleCastUploader
             Log.i("SIMPLECAST", "Uploading frame " + mEndpoint + " ...");
             final HttpURLConnection conn = (HttpURLConnection) mEndpoint.openConnection();
             try {
+                conn.setConnectTimeout(2500);
+                conn.setReadTimeout(4000);
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");
                 conn.setRequestProperty("Content-Type", "image/jpeg");
@@ -71,6 +76,7 @@ public class SimpleCastUploader
             }
         } catch (final IOException | RuntimeException e) {
             mOnError.call(e);
+            mPatcher.invalidate();
         }
         return new Stats(size, (int)(System.currentTimeMillis() - startedAt));
     }

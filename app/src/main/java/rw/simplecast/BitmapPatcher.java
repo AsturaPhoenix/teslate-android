@@ -62,19 +62,25 @@ public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
     }
 
     private Bitmap mLast;
-    private long mLastKeyframe;
+    private long mLastKeyframe = Long.MIN_VALUE;
+
+    public void invalidate() {
+        mLast = null;
+    }
 
     @Override
     public List<Patch<Bitmap>> call(final Bitmap bitmap) {
         List<Patch<Bitmap>> ret;
-        if (mLast == null || mLast.getWidth() != bitmap.getWidth() ||
-                mLast.getHeight() != bitmap.getHeight()) {
+        if (mLast == null ||
+                mLast.getWidth() != bitmap.getWidth() ||
+                mLast.getHeight() != bitmap.getHeight() ||
+                System.currentTimeMillis() - mLastKeyframe > 15000) {
             mLastKeyframe = System.currentTimeMillis();
             ret = Collections.singletonList(new Patch<>(new Point(0, 0), bitmap));
         } else {
             ret = diff(mLast, bitmap);
         }
-        mLast = System.currentTimeMillis() - mLastKeyframe > 15000 ? null : bitmap;
+        mLast = bitmap;
         return ret;
     }
 }

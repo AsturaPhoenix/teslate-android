@@ -29,7 +29,8 @@ public class SimpleCastActivity extends AppCompatActivity {
 
     private String formatStatus(final SimpleCastService.Status status) {
         final double estPd = MS_DRIVING_PER_MONTH / status.uptime;
-        return "Status: " + Formatter.formatShortFileSize(this, status.bytesSent) + " sent\n" +
+        return "Status: " + Formatter.formatShortFileSize(this, status.bytesSent) + " sent (" +
+                Formatter.formatShortFileSize(this, status.bytesTx) + " tx)\n" +
                 Formatter.formatShortFileSize(this, status.bytesSent * 3600000 / status.uptime) +
                 " per hour\n" +
                 Formatter.formatShortFileSize(this, (long)(status.bytesSent * estPd)) +
@@ -74,13 +75,13 @@ public class SimpleCastActivity extends AppCompatActivity {
         final Button toggle = (Button) findViewById(R.id.toggle);
         final TextView inputStatus = (TextView) findViewById(R.id.inputStatus);
 
-        if (!RemoteInputService.isPossible()) {
+        if (!SimpleCastService.isInputPossible()) {
             inputStatus.setText("ADB injection required for remote input");
             inputStatus.setTextColor(Color.RED);
         }
 
         if (SimpleCastService.sRunning) {
-            if (RemoteInputService.isPossible()) {
+            if (SimpleCastService.isInputPossible()) {
                 inputStatus.setText("Remote input enabled");
                 inputStatus.setTextColor(Color.GREEN);
             }
@@ -90,7 +91,7 @@ public class SimpleCastActivity extends AppCompatActivity {
                 stopService(new Intent(this, SimpleCastService.class));
             });
         } else {
-            if (RemoteInputService.isPossible()) {
+            if (SimpleCastService.isInputPossible()) {
                 inputStatus.setText("Remote input suspended");
                 inputStatus.setTextColor(Color.YELLOW);
             }

@@ -16,6 +16,7 @@ import java.nio.Buffer;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 public class Snapshotter {
     public static Observable<Bitmap> create(final MediaProjection mediaProjection,
@@ -28,6 +29,8 @@ public class Snapshotter {
                     null);
 
             s.add(Observable.interval(0, period, TimeUnit.MILLISECONDS)
+                    .onBackpressureDrop()
+                    .observeOn(Schedulers.io())
                     .doOnUnsubscribe(() -> {
                         display.release();
                         mediaProjection.stop();

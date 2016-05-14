@@ -27,11 +27,6 @@
             android:name=".SimpleCastService"
             android:exported="false">
         </service>
-
-        <service
-            android:name=".RemoteInputService"
-            android:exported="false">
-        </service>
     </application>
 
 </manifest>

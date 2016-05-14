@@ -29,11 +29,11 @@ public class SimpleCastActivity extends AppCompatActivity {
 
     private String formatStatus(final SimpleCastService.Status status) {
         final double estPd = MS_DRIVING_PER_MONTH / status.uptime;
-        return "Status: " + Formatter.formatShortFileSize(this, status.bytesSent) + " sent (" +
-                Formatter.formatShortFileSize(this, status.bytesTx) + " tx)\n" +
-                Formatter.formatShortFileSize(this, status.bytesSent * 3600000 / status.uptime) +
+        return "Status: " + Formatter.formatShortFileSize(this, status.bytesTx) + " sent (" +
+                Formatter.formatShortFileSize(this, status.bytesPayload) + " payload)\n" +
+                Formatter.formatShortFileSize(this, status.bytesTx * 3600000 / status.uptime) +
                 " per hour\n" +
-                Formatter.formatShortFileSize(this, (long)(status.bytesSent * estPd)) +
+                Formatter.formatShortFileSize(this, (long)(status.bytesTx * estPd)) +
                 " per month (projected)\n" +
                 "Latency: " + status.latency + " ms (avg 16: " + status.lat16 + " ms)";
     }

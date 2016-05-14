@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Collection;
 
@@ -49,7 +50,7 @@ public class SimpleCastUploader
             Log.i("SIMPLECAST", "Uploading frame " + mEndpoint + " ...");
             final HttpURLConnection conn = (HttpURLConnection) mEndpoint.openConnection();
             try {
-                conn.setConnectTimeout(2500);
+                //conn.setConnectTimeout(2500);
                 conn.setReadTimeout(4000);
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");
@@ -74,6 +75,8 @@ public class SimpleCastUploader
             } finally {
                 conn.disconnect();
             }
+        } catch (final SocketTimeoutException e) {
+            mPatcher.invalidate();
         } catch (final IOException | RuntimeException e) {
             mOnError.call(e);
             mPatcher.invalidate();

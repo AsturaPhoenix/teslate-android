@@ -56,7 +56,7 @@ public class SimpleCastService extends Service {
 
     @RequiredArgsConstructor
     public static class Status {
-        public final long bytesSent, bytesTx, uptime;
+        public final long bytesPayload, bytesTx, uptime;
         public final int latency, lat16;
     }
 
@@ -108,7 +108,10 @@ public class SimpleCastService extends Service {
         mStartedAt = System.currentTimeMillis();
         mInitTx = TrafficStats.getUidTxBytes(getApplicationInfo().uid);
 
-        mErrors.observeOn(AndroidSchedulers.mainThread())
+        mErrors
+                .distinct(Throwable::getMessage)
+                .onBackpressureBuffer()
+                .observeOn(AndroidSchedulers.mainThread())
                 .distinctUntilChanged(Throwable::getMessage)
                 .subscribe(t -> {
                     try {

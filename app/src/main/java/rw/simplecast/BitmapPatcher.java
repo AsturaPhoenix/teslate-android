@@ -29,6 +29,7 @@ public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
     private final String mColorThreshKey;
     private final int mColorThreshDefault;
 
+    private static final long KEYFRAME_PERIOD = 30000;
     private static final int RES = 5;
 
     public BitmapPatcher(final SharedPreferences prefs,
@@ -74,7 +75,7 @@ public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
         if (mLast == null ||
                 mLast.getWidth() != bitmap.getWidth() ||
                 mLast.getHeight() != bitmap.getHeight() ||
-                System.currentTimeMillis() - mLastKeyframe > 15000) {
+                System.currentTimeMillis() - mLastKeyframe > KEYFRAME_PERIOD) {
             mLastKeyframe = System.currentTimeMillis();
             ret = Collections.singletonList(new Patch<>(new Point(0, 0), bitmap));
         } else {

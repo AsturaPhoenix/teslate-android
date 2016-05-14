@@ -68,7 +68,7 @@ public class SimpleCastService extends Service {
 
     private static byte[] compress(final Bitmap bmp) {
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        return bmp.compress(Bitmap.CompressFormat.WEBP, 45, bout) ? bout.toByteArray() : null;
+        return bmp.compress(Bitmap.CompressFormat.WEBP, 30, bout) ? bout.toByteArray() : null;
     }
 
     private SharedPreferences mPrefs;
@@ -108,11 +108,9 @@ public class SimpleCastService extends Service {
         mStartedAt = System.currentTimeMillis();
         mInitTx = TrafficStats.getUidTxBytes(getApplicationInfo().uid);
 
-        mErrors
-                .distinct(Throwable::getMessage)
+        mErrors.distinctUntilChanged(Throwable::getMessage)
                 .onBackpressureBuffer()
                 .observeOn(AndroidSchedulers.mainThread())
-                .distinctUntilChanged(Throwable::getMessage)
                 .subscribe(t -> {
                     try {
                         PreferenceManager.getDefaultSharedPreferences(this).edit()
@@ -324,6 +322,10 @@ public class SimpleCastService extends Service {
     public void processCommand(final String payload) {
         if (SimpleCastService.sRunning) {
             Log.i("SIMPLECAST", "Input message " + payload);
+
+            if (!isInputPossible()) {
+                return;
+            }
 
             final String[] majorParts = payload.split("\\|");
 

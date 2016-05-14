@@ -54,7 +54,7 @@ public class SimpleCastUploader
                 conn.setReadTimeout(4000);
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");
-                conn.setRequestProperty("Content-Type", "image/jpeg");
+                conn.setRequestProperty("Content-Type", "image/webp");
                 try (final ObjectOutputStream o = new ObjectOutputStream(conn.getOutputStream())) {
                     for (final Patch<byte[]> p : patches) {
                         o.writeInt(p.pt.x);
@@ -71,6 +71,7 @@ public class SimpleCastUploader
                     mOnError.call(new IOException(conn.getResponseMessage() == null ?
                             "HTTP " + conn.getResponseCode() :
                             conn.getResponseMessage() + " (" + conn.getResponseCode() + ")"));
+                    mPatcher.invalidate();
                 }
             } finally {
                 conn.disconnect();

@@ -14,7 +14,7 @@ android {
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "rw.simplecast"
+        applicationId "io.baku.teslate"
         minSdkVersion 21
         targetSdkVersion 23
         versionCode 1
@@ -50,6 +50,4 @@ dependencies {
             'io.reactivex:rxjava-async-util:0.21.0',
     )
 }
-
-apply plugin: 'com.google.gms.google-services'
 

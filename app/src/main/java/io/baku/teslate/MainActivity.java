@@ -1,4 +1,4 @@
-package rw.simplecast;
+package io.baku.teslate;
 
 import android.content.Context;
 import android.content.Intent;
@@ -16,7 +16,7 @@ import android.widget.TextView;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 
-public class SimpleCastActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
     private static final int
             SCREEN_CAP_PERMS = 0;
 
@@ -27,7 +27,7 @@ public class SimpleCastActivity extends AppCompatActivity {
     private final Runnable mUpdateButton = this::updateButton;
     private static final double MS_DRIVING_PER_MONTH = (4.0 * 5 + 10 * 2) * 4 * 30 / 28 * 3600000;
 
-    private String formatStatus(final SimpleCastService.Status status) {
+    private String formatStatus(final CastingService.Status status) {
         final double estPd = MS_DRIVING_PER_MONTH / status.uptime;
         return "Status: " + Formatter.formatShortFileSize(this, status.bytesTx) + " sent (" +
                 Formatter.formatShortFileSize(this, status.bytesPayload) + " payload)\n" +
@@ -41,15 +41,15 @@ public class SimpleCastActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_simple_cast);
+        setContentView(R.layout.activity_main);
 
         final TextView txtServiceStatus = (TextView) findViewById(R.id.serviceStatus);
-        mStatusUpdates = SimpleCastService.getStatus()
+        mStatusUpdates = CastingService.getStatus()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(s -> txtServiceStatus.setText(formatStatus(s)));
 
         final String lastError = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(SimpleCastService.PREF_LAST_ERROR, null);
+                .getString(CastingService.PREF_LAST_ERROR, null);
         final TextView txtLastError = (TextView) findViewById(R.id.lastError);
         if (lastError != null) {
             txtLastError.setText(lastError);
@@ -75,23 +75,23 @@ public class SimpleCastActivity extends AppCompatActivity {
         final Button toggle = (Button) findViewById(R.id.toggle);
         final TextView inputStatus = (TextView) findViewById(R.id.inputStatus);
 
-        if (!SimpleCastService.isInputPossible()) {
+        if (!CastingService.isInputPossible()) {
             inputStatus.setText("ADB injection required for remote input");
             inputStatus.setTextColor(Color.RED);
         }
 
-        if (SimpleCastService.sRunning) {
-            if (SimpleCastService.isInputPossible()) {
+        if (CastingService.sRunning) {
+            if (CastingService.isInputPossible()) {
                 inputStatus.setText("Remote input enabled");
                 inputStatus.setTextColor(Color.GREEN);
             }
 
             toggle.setText("Stop Server");
             toggle.setOnClickListener(x -> {
-                stopService(new Intent(this, SimpleCastService.class));
+                stopService(new Intent(this, CastingService.class));
             });
         } else {
-            if (SimpleCastService.isInputPossible()) {
+            if (CastingService.isInputPossible()) {
                 inputStatus.setText("Remote input suspended");
                 inputStatus.setTextColor(Color.YELLOW);
             }
@@ -110,9 +110,9 @@ public class SimpleCastActivity extends AppCompatActivity {
                                     final Intent data) {
         switch (requestCode) {
             case SCREEN_CAP_PERMS:
-                final Intent intent = new Intent(this, SimpleCastService.class);
-                intent.putExtra(SimpleCastService.MP_RESULT, resultCode);
-                intent.putExtra(SimpleCastService.MP_INTENT, data);
+                final Intent intent = new Intent(this, CastingService.class);
+                intent.putExtra(CastingService.MP_RESULT, resultCode);
+                intent.putExtra(CastingService.MP_INTENT, data);
                 startService(intent);
                 break;
             default:

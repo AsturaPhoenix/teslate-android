@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "am instrument -w rw.simplecast/rw.simplecast.Instrumentation &" | adb shell
+echo "am instrument -w io.baku.teslate/io.baku.teslate.Instrumentation &" | adb shell

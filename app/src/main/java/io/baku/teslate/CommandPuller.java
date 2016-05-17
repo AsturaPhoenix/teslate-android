@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package rw.simplecast;
+package io.baku.teslate;
 
 import com.google.common.io.ByteStreams;
 
@@ -11,19 +11,15 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import rx.functions.Action1;
-
 public class CommandPuller {
     private final URL mEndpoint;
-    private final Action1<Throwable> mOnError;
 
-    public CommandPuller(final String name, final Action1<Throwable> onError) {
+    public CommandPuller(final String name) {
         try {
-            mEndpoint = new URL("https://simplecast-1297.appspot.com/command/" + name);
+            mEndpoint = new URL("https://teslate-server.appspot.com/command/" + name);
         } catch (final MalformedURLException e) {
             throw new IllegalArgumentException("Unable to connect to resource " + name, e);
         }
-        mOnError = onError;
     }
 
     public String poll() throws IOException {

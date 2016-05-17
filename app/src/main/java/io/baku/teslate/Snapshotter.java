@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package rw.simplecast;
+package io.baku.teslate;
 
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -24,7 +24,7 @@ public class Snapshotter {
         return Observable.<Bitmap>create(s -> {
             final ImageReader imageReader = ImageReader.newInstance(w, h,
                     ImageFormat.JPEG, 2);
-            final VirtualDisplay display = mediaProjection.createVirtualDisplay("SimpleCast", w, h,
+            final VirtualDisplay display = mediaProjection.createVirtualDisplay("Teslate", w, h,
                     96, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, imageReader.getSurface(), null,
                     null);
 

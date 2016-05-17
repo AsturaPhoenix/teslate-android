@@ -1,4 +1,4 @@
-package rw.simplecast;
+package io.baku.teslate;
 
 import android.accessibilityservice.AccessibilityService;
 import android.app.Service;
@@ -37,7 +37,9 @@ import rx.subjects.PublishSubject;
 import rx.subscriptions.CompositeSubscription;
 import rx.util.async.Async;
 
-public class SimpleCastService extends Service {
+public class CastingService extends Service {
+    private static final String TAG = CastingService.class.getSimpleName();
+
     public static final String
             MP_INTENT = "MP_INTENT",
             MP_RESULT = "MP_RESULT";
@@ -89,7 +91,7 @@ public class SimpleCastService extends Service {
         stopSelf();
     }
 
-    private void processMetrics(final SimpleCastUploader.Stats stats) {
+    private void processMetrics(final Uploader.Stats stats) {
         mPayloadSize += stats.size;
         mLat16Sum += stats.duration - mLat16[mLat16Ptr];
         mLat16[mLat16Ptr] = stats.duration;
@@ -147,11 +149,11 @@ public class SimpleCastService extends Service {
                 .map(patcher)
                 .filter(p -> !p.isEmpty())
                 .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
-                .map(new SimpleCastUploader("nautilus", patcher, this::onError))
+                .map(new Uploader("nautilus", patcher, this::onError))
                 .subscribe(this::processMetrics, this::onFatal);
 
         final Subscription input = Observable.<String>create(s -> {
-            final CommandPuller p = new CommandPuller("nautilus", this::onError);
+            final CommandPuller p = new CommandPuller("nautilus");
 
             while (!s.isUnsubscribed()) {
                 final String c;
@@ -320,8 +322,8 @@ public class SimpleCastService extends Service {
     }
 
     public void processCommand(final String payload) {
-        if (SimpleCastService.sRunning) {
-            Log.i("SIMPLECAST", "Input message " + payload);
+        if (CastingService.sRunning) {
+            Log.i(TAG, "Input message " + payload);
 
             if (!isInputPossible()) {
                 return;

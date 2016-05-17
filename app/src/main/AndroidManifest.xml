@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="rw.simplecast">
+    package="io.baku.teslate">
 
     <instrumentation
-        android:name="Instrumentation"
-        android:targetPackage="rw.simplecast" />
+        android:name=".Instrumentation"
+        android:targetPackage="io.baku.teslate" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -15,7 +15,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".SimpleCastActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".SimpleCastService"
+            android:name=".CastingService"
             android:exported="false">
         </service>
     </application>

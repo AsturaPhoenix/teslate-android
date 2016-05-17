@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package rw.simplecast;
+package io.baku.teslate;
 
 import android.util.Log;
 
@@ -18,8 +18,9 @@ import lombok.RequiredArgsConstructor;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-public class SimpleCastUploader
-        implements Func1<Collection<Patch<byte[]>>, SimpleCastUploader.Stats> {
+public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats> {
+    private static final String TAG = Uploader.class.getSimpleName();
+
     @RequiredArgsConstructor
     public static class Stats {
         public final int size;
@@ -30,10 +31,10 @@ public class SimpleCastUploader
     private final BitmapPatcher mPatcher;
     private final Action1<Throwable> mOnError;
 
-    public SimpleCastUploader(final String name, final BitmapPatcher patcher,
-                              final Action1<Throwable> onError) {
+    public Uploader(final String name, final BitmapPatcher patcher,
+                    final Action1<Throwable> onError) {
         try {
-            mEndpoint = new URL("https://simplecast-1297.appspot.com/frame/" + name +
+            mEndpoint = new URL("https://teslate-server.appspot.com/frame/" + name +
                     "/frame.jpeg");
         } catch (final MalformedURLException e) {
             throw new IllegalArgumentException("Unable to connect to resource " + name, e);
@@ -47,7 +48,7 @@ public class SimpleCastUploader
         final long startedAt = System.currentTimeMillis();
         int size = 0;
         try {
-            Log.i("SIMPLECAST", "Uploading frame " + mEndpoint + " ...");
+            Log.i(TAG, "Uploading frame " + mEndpoint + " ...");
             final HttpURLConnection conn = (HttpURLConnection) mEndpoint.openConnection();
             try {
                 //conn.setConnectTimeout(2500);
@@ -64,7 +65,7 @@ public class SimpleCastUploader
                         size += Integer.SIZE * 3 / 8 + p.bmp.length;
                     }
                 }
-                Log.i("SIMPLECAST", "Uploaded frame " + mEndpoint +
+                Log.i(TAG, "Uploaded frame " + mEndpoint +
                         " (" + conn.getResponseCode() + ", " + size + " B, " +
                         patches.size() + " patches)");
                 if (conn.getResponseCode() != 200) {

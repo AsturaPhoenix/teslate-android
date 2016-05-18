@@ -6,7 +6,25 @@ Android app that enables this mirroring solution.
 
 # Installation
 
+The APK is not yet available on the Play Store. To install, you will need to clone the repo and build. You will need the Android SDK and build tools, available [here](https://developer.android.com/studio/index.html#downloads).
 
+Once you have the prerequisites, with your device plugged in for [software installation](https://developer.android.com/studio/run/device.html):
+
+1. `./gradlew installDebug`
+2. `./start-instrumentation` (required for remote input)
+
+For more information:
+
+* [Gradle](http://gradle.org/getting-started-android/)
+* [Android Studio](https://developer.android.com/studio/index.html)
+
+# Usage
+
+1. In your car browser, navigate to https://teslate-server.appspot.com. The webpage will generate and append a random session ID to the URL. Alternatively, you can enter your own unique session ID as a query string after the URL (e.g. https://teslate-server.appspot.com?my-session). You may want to bookmark this URL.
+2. Start the Teslate Android app.
+3. If the app shows a message saying "ADB injection required for remote input", you will need to perform step 2 under installation instructions again. This is necessary for remote input any time the device is restarted, and from time to time thereafter.
+4. Set the session ID to your session ID. THIS IS NOT YET IMPLEMENTED. THE SESSION IS HARD-CODED TO "nautilus".
+5. In the Android app, tap the "Start Server" button.
 
 # Data usage
 

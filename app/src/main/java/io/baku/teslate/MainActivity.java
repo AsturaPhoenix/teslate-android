@@ -8,9 +8,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.format.Formatter;
-import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import rx.Subscription;
@@ -43,19 +45,30 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        final Settings settings = new Settings(PreferenceManager.getDefaultSharedPreferences(this),
+                new ErrorReporter(this));
+
+        final EditText txtSessionId = (EditText) findViewById(R.id.session_id);
+        txtSessionId.setText(settings.getSessionId());
+        txtSessionId.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                settings.setSessionId(s.toString());
+            }
+        });
+
         final TextView txtServiceStatus = (TextView) findViewById(R.id.serviceStatus);
         mStatusUpdates = CastingService.getStatus()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(s -> txtServiceStatus.setText(formatStatus(s)));
-
-        final String lastError = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(CastingService.PREF_LAST_ERROR, null);
-        final TextView txtLastError = (TextView) findViewById(R.id.lastError);
-        if (lastError != null) {
-            txtLastError.setText(lastError);
-        } else {
-            ((View) txtLastError.getParent()).setVisibility(View.INVISIBLE);
-        }
 
         mProjectionManager = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);
@@ -76,27 +89,27 @@ public class MainActivity extends AppCompatActivity {
         final TextView inputStatus = (TextView) findViewById(R.id.inputStatus);
 
         if (!CastingService.isInputPossible()) {
-            inputStatus.setText("ADB injection required for remote input");
+            inputStatus.setText(R.string.adb_required);
             inputStatus.setTextColor(Color.RED);
         }
 
         if (CastingService.sRunning) {
             if (CastingService.isInputPossible()) {
-                inputStatus.setText("Remote input enabled");
+                inputStatus.setText(R.string.adb_active);
                 inputStatus.setTextColor(Color.GREEN);
             }
 
-            toggle.setText("Stop Server");
+            toggle.setText(R.string.stop_casting);
             toggle.setOnClickListener(x -> {
                 stopService(new Intent(this, CastingService.class));
             });
         } else {
             if (CastingService.isInputPossible()) {
-                inputStatus.setText("Remote input suspended");
+                inputStatus.setText(R.string.adb_suspended);
                 inputStatus.setTextColor(Color.YELLOW);
             }
 
-            toggle.setText("Start Server");
+            toggle.setText(R.string.start_casting);
             toggle.setOnClickListener(x -> {
                 startActivityForResult(mProjectionManager.createScreenCaptureIntent(),
                         SCREEN_CAP_PERMS);

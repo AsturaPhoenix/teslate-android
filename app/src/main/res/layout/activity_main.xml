@@ -10,12 +10,23 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="io.baku.teslate.MainActivity">
 
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/session_id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/session_id" />
+    </android.support.design.widget.TextInputLayout>
+
     <Button
+        android:id="@+id/toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Server"
-        android:id="@+id/toggle"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:text="@string/start_casting" />
 
     <TextView
         android:id="@+id/inputStatus"
@@ -27,24 +38,5 @@
         android:id="@+id/serviceStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
-
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:text="Last error:"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:id="@+id/lastError" />
-    </LinearLayout>
 
 </LinearLayout>

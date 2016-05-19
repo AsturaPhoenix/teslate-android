@@ -39,11 +39,8 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile (
-            'com.android.support:appcompat-v7:23.1.1',
+            'com.android.support:design:22.2.0',
             'com.android.support.test.uiautomator:uiautomator-v18:2.1.1',
-            'com.amazonaws:aws-android-sdk-s3:2.2.10',
-            'com.amazonaws:aws-android-sdk-sns:2.2.10',
-            'com.google.android.gms:play-services:8.4.0',
             'com.google.guava:guava:19.0',
             'io.reactivex:rxandroid:1.0.1',
             'io.reactivex:rxjava:1.0.16',

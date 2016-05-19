@@ -5,7 +5,6 @@ import android.app.Service;
 import android.app.UiAutomation;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -19,9 +18,7 @@ import android.util.Log;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.WindowManager;
-import android.widget.Toast;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
 import java.io.ByteArrayOutputStream;
@@ -44,11 +41,6 @@ public class CastingService extends Service {
             MP_INTENT = "MP_INTENT",
             MP_RESULT = "MP_RESULT";
 
-    public static final String
-            PREF_LAST_ERROR = "LAST_ERROR",
-            PREF_FRAME_COLOR_THRESHOLD = "FRAME_COLOR_THRESHOLD";
-    public static final int
-            DEFAULT_FRAME_COLOR_THRESHOLD = 8;
     public static final long
             SNAPSHOT_PERIOD = 250;
 
@@ -73,21 +65,17 @@ public class CastingService extends Service {
         return bmp.compress(Bitmap.CompressFormat.WEBP, 30, bout) ? bout.toByteArray() : null;
     }
 
-    private SharedPreferences mPrefs;
+    private Settings mSettings;
+    private ErrorReporter mErrors;
     private Subscription mSubscription;
-    private PublishSubject<Throwable> mErrors = PublishSubject.create();
     private int mPayloadSize;
     private long mStartedAt;
     private long mInitTx;
     private final int[] mLat16 = new int[16];
     private int mLat16Ptr, mLat16Sum;
 
-    private void onError(final Throwable t) {
-        mErrors.onNext(t);
-    }
-
     private void onFatal(final Throwable t) {
-        onError(t);
+        mErrors.call(t);
         stopSelf();
     }
 
@@ -110,25 +98,9 @@ public class CastingService extends Service {
         mStartedAt = System.currentTimeMillis();
         mInitTx = TrafficStats.getUidTxBytes(getApplicationInfo().uid);
 
-        mErrors.distinctUntilChanged(Throwable::getMessage)
-                .onBackpressureBuffer()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(t -> {
-                    try {
-                        PreferenceManager.getDefaultSharedPreferences(this).edit()
-                                .putString(PREF_LAST_ERROR, Throwables.getStackTraceAsString(t))
-                                .apply();
-                        Toast.makeText(this, t.getMessage(), Toast.LENGTH_LONG).show();
-                        t.printStackTrace();
-                    } catch (final Throwable t2) {
-                        PreferenceManager.getDefaultSharedPreferences(this).edit()
-                                .putString(PREF_LAST_ERROR, Throwables.getStackTraceAsString(t2))
-                                .apply();
-                        t2.printStackTrace();
-                    }
-                });
-
         sRunning = true;
+
+        mErrors = new ErrorReporter(this);
 
         final MediaProjectionManager pm = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);
@@ -136,31 +108,30 @@ public class CastingService extends Service {
         final Intent mpIntent = intent.getParcelableExtra(MP_INTENT);
         final int mpResult = intent.getIntExtra(MP_RESULT, 0);
 
-        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        mSettings = new Settings(PreferenceManager.getDefaultSharedPreferences(this), mErrors);
 
         final Observable<Bitmap> snaps = Snapshotter.create(
                 pm.getMediaProjection(mpResult, mpIntent),
                 SNAPSHOT_PERIOD, 72 * SCALE, 128 * SCALE);
 
-        final BitmapPatcher patcher = new BitmapPatcher(mPrefs,
-                PREF_FRAME_COLOR_THRESHOLD, DEFAULT_FRAME_COLOR_THRESHOLD);
+        final BitmapPatcher patcher = new BitmapPatcher(mSettings);
 
         final Subscription casting = snaps
                 .map(patcher)
                 .filter(p -> !p.isEmpty())
                 .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
-                .map(new Uploader("nautilus", patcher, this::onError))
+                .map(new Uploader(mSettings, patcher, mErrors))
                 .subscribe(this::processMetrics, this::onFatal);
 
         final Subscription input = Observable.<String>create(s -> {
-            final CommandPuller p = new CommandPuller("nautilus");
+            final CommandPuller p = new CommandPuller(mSettings);
 
             while (!s.isUnsubscribed()) {
                 final String c;
                 try {
                     c = p.poll();
                 } catch (IOException e) {
-                    onError(e);
+                    mErrors.call(e);
                     continue;
                 }
 

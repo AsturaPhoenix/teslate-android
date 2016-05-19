@@ -4,7 +4,6 @@
 
 package io.baku.teslate;
 
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -16,8 +15,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 
+import lombok.RequiredArgsConstructor;
 import rx.functions.Func1;
 
+@RequiredArgsConstructor
 public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
     private static boolean diff(final int a, final int b, final int threshold) {
         return Math.abs(Color.red(a) - Color.red(b)) > threshold ||
@@ -25,26 +26,15 @@ public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
                 Math.abs(Color.blue(a) - Color.blue(b)) > threshold;
     }
 
-    private final SharedPreferences mPrefs;
-    private final String mColorThreshKey;
-    private final int mColorThreshDefault;
+    private final Settings mSettings;
 
     private static final long KEYFRAME_PERIOD = 30000;
     private static final int RES = 5;
 
-    public BitmapPatcher(final SharedPreferences prefs,
-                         final String colorThreshKey, final int colorThreshDefault) {
-        mPrefs = prefs;
-        mColorThreshKey = colorThreshKey;
-        mColorThreshDefault = colorThreshDefault;
-    }
-
     private List<Patch<Bitmap>> diff(final Bitmap orig, final Bitmap next) {
-        final int colorThreshold = mPrefs.getInt(mColorThreshKey, mColorThreshDefault);
-        ;
+        final int colorThreshold = mSettings.getFrameColorThreshold();
         final PatchAccumulator p = new PatchAccumulator(RES * 3);
 
-        int acc = 0;
         for (int y = 0; y < orig.getHeight(); y += RES) {
             for (int x = 0; x < orig.getWidth(); x += RES) {
                 if (diff(orig.getPixel(x, y), next.getPixel(x, y), colorThreshold)) {

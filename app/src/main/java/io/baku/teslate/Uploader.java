@@ -9,7 +9,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Collection;
@@ -19,6 +18,7 @@ import rx.functions.Action1;
 import rx.functions.Func1;
 
 public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats> {
+    private static final int PROTOCOL_VERSION = 0;
     private static final String TAG = Uploader.class.getSimpleName();
 
     @RequiredArgsConstructor
@@ -27,18 +27,13 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
         public final int duration;
     }
 
-    private final URL mEndpoint;
+    private Settings mSettings;
     private final BitmapPatcher mPatcher;
     private final Action1<Throwable> mOnError;
 
-    public Uploader(final String name, final BitmapPatcher patcher,
+    public Uploader(final Settings settings, final BitmapPatcher patcher,
                     final Action1<Throwable> onError) {
-        try {
-            mEndpoint = new URL("https://teslate-server.appspot.com/frame/" + name +
-                    "/frame.jpeg");
-        } catch (final MalformedURLException e) {
-            throw new IllegalArgumentException("Unable to connect to resource " + name, e);
-        }
+        mSettings = settings;
         mPatcher = patcher;
         mOnError = onError;
     }
@@ -48,14 +43,17 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
         final long startedAt = System.currentTimeMillis();
         int size = 0;
         try {
-            Log.i(TAG, "Uploading frame " + mEndpoint + " ...");
-            final HttpURLConnection conn = (HttpURLConnection) mEndpoint.openConnection();
+            final URL endpoint = mSettings.getEndpoint();
+            Log.i(TAG, "Uploading frame " + endpoint + " ...");
+            final HttpURLConnection conn = (HttpURLConnection) endpoint.openConnection();
             try {
                 //conn.setConnectTimeout(2500);
                 conn.setReadTimeout(4000);
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");
                 conn.setRequestProperty("Content-Type", "image/webp");
+                
+                conn.getOutputStream().write(PROTOCOL_VERSION);
                 try (final ObjectOutputStream o = new ObjectOutputStream(conn.getOutputStream())) {
                     for (final Patch<byte[]> p : patches) {
                         o.writeInt(p.pt.x);
@@ -65,7 +63,7 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
                         size += Integer.SIZE * 3 / 8 + p.bmp.length;
                     }
                 }
-                Log.i(TAG, "Uploaded frame " + mEndpoint +
+                Log.i(TAG, "Uploaded frame " + endpoint +
                         " (" + conn.getResponseCode() + ", " + size + " B, " +
                         patches.size() + " patches)");
                 if (conn.getResponseCode() != 200) {

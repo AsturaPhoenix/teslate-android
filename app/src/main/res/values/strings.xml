@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Teslate</string>
+    <string name="adb_active">Remote input enabled</string>
+    <string name="adb_required">ADB injection required for remote input</string>
+    <string name="adb_suspended">Remote input suspended</string>
+    <string name="session_id">Session ID</string>
+    <string name="start_casting">Start Casting</string>
+    <string name="stop_casting">Stop Casting</string>
 </resources>

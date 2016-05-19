@@ -8,22 +8,15 @@ import com.google.common.io.ByteStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 public class CommandPuller {
-    private final URL mEndpoint;
-
-    public CommandPuller(final String name) {
-        try {
-            mEndpoint = new URL("https://teslate-server.appspot.com/command/" + name);
-        } catch (final MalformedURLException e) {
-            throw new IllegalArgumentException("Unable to connect to resource " + name, e);
-        }
-    }
+    private final Settings mSettings;
 
     public String poll() throws IOException {
-        final InputStream i = (InputStream)mEndpoint.getContent();
+        final InputStream i = (InputStream)mSettings.getEndpoint().getContent();
         return i == null? null : new String(ByteStreams.toByteArray(i));
     }
 }

@@ -33,20 +33,34 @@ public class Settings {
     }
 
     private String mSessionId;
-    private URL mEndpoint;
+    private URL mFrameEndpoint, mCommandEndpoint;
 
-    public URL getEndpoint() {
+    private void ensureEndpoints() {
         final String curSessId = getSessionId();
         if (!Objects.equals(curSessId, mSessionId)) {
             mSessionId = curSessId;
             try {
-                mEndpoint = new URL("https://teslate-server.appspot.com/frame/" + mSessionId +
+                mFrameEndpoint = new URL("https://teslate-server.appspot.com/frame/" + mSessionId +
                         "/frame.jpeg");
             } catch (final MalformedURLException e) {
                 mOnError.call(e);
             }
+            try {
+                mCommandEndpoint = new URL("https://teslate-server.appspot.com/command/" + mSessionId);
+            } catch (final MalformedURLException e) {
+                mOnError.call(e);
+            }
         }
-        return mEndpoint;
+    }
+
+    public URL getFrameEndpoint() {
+        ensureEndpoints();
+        return mFrameEndpoint;
+    }
+
+    public URL getCommandEndpoint() {
+        ensureEndpoints();
+        return mCommandEndpoint;
     }
 
     public int getFrameColorThreshold() {

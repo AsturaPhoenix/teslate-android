@@ -11,13 +11,12 @@ import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.util.Collection;
 
 import lombok.RequiredArgsConstructor;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats> {
+public class Uploader implements Func1<PatchSet<byte[]>, Uploader.Stats> {
     private static final int PROTOCOL_VERSION = 0;
     private static final String TAG = Uploader.class.getSimpleName();
 
@@ -39,11 +38,11 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
     }
 
     @Override
-    public Stats call(final Collection<Patch<byte[]>> patches) {
+    public Stats call(final PatchSet<byte[]> patchSet) {
         final long startedAt = System.currentTimeMillis();
         int size = 0;
         try {
-            final URL endpoint = mSettings.getEndpoint();
+            final URL endpoint = mSettings.getFrameEndpoint();
             Log.i(TAG, "Uploading frame " + endpoint + " ...");
             final HttpURLConnection conn = (HttpURLConnection) endpoint.openConnection();
             try {
@@ -55,7 +54,10 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
                 
                 conn.getOutputStream().write(PROTOCOL_VERSION);
                 try (final ObjectOutputStream o = new ObjectOutputStream(conn.getOutputStream())) {
-                    for (final Patch<byte[]> p : patches) {
+                    o.writeInt(patchSet.frameWidth);
+                    o.writeInt(patchSet.frameHeight);
+
+                    for (final Patch<byte[]> p : patchSet.patches) {
                         o.writeInt(p.pt.x);
                         o.writeInt(p.pt.y);
                         o.writeInt(p.bmp.length);
@@ -65,7 +67,7 @@ public class Uploader implements Func1<Collection<Patch<byte[]>>, Uploader.Stats
                 }
                 Log.i(TAG, "Uploaded frame " + endpoint +
                         " (" + conn.getResponseCode() + ", " + size + " B, " +
-                        patches.size() + " patches)");
+                        patchSet.patches.size() + " patches)");
                 if (conn.getResponseCode() != 200) {
                     mOnError.call(new IOException(conn.getResponseMessage() == null ?
                             "HTTP " + conn.getResponseCode() :

@@ -16,7 +16,7 @@ public class CommandPuller {
     private final Settings mSettings;
 
     public String poll() throws IOException {
-        final InputStream i = (InputStream)mSettings.getEndpoint().getContent();
+        final InputStream i = (InputStream)mSettings.getCommandEndpoint().getContent();
         return i == null? null : new String(ByteStreams.toByteArray(i));
     }
 }

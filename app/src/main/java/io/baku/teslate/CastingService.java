@@ -19,8 +19,6 @@ import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 
-import com.google.common.collect.Lists;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -118,8 +116,8 @@ public class CastingService extends Service {
 
         final Subscription casting = snaps
                 .map(patcher)
-                .filter(p -> !p.isEmpty())
-                .map(x -> Lists.transform(x, p -> new Patch<>(p.pt, compress(p.bmp))))
+                .filter(p -> !p.patches.isEmpty())
+                .map(x -> x.transform(CastingService::compress))
                 .map(new Uploader(mSettings, patcher, mErrors))
                 .subscribe(this::processMetrics, this::onFatal);
 

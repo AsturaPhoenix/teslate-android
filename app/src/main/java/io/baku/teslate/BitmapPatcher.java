@@ -12,6 +12,7 @@ import android.graphics.Rect;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import rx.functions.Func1;
 
 @RequiredArgsConstructor
-public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
+public class BitmapPatcher implements Func1<Bitmap, PatchSet<Bitmap>> {
     private static boolean diff(final int a, final int b, final int threshold) {
         return Math.abs(Color.red(a) - Color.red(b)) > threshold ||
                 Math.abs(Color.green(a) - Color.green(b)) > threshold ||
@@ -60,18 +61,18 @@ public class BitmapPatcher implements Func1<Bitmap, List<Patch<Bitmap>>> {
     }
 
     @Override
-    public List<Patch<Bitmap>> call(final Bitmap bitmap) {
-        List<Patch<Bitmap>> ret;
+    public PatchSet<Bitmap> call(final Bitmap bitmap) {
+        Collection<Patch<Bitmap>> patches;
         if (mLast == null ||
                 mLast.getWidth() != bitmap.getWidth() ||
                 mLast.getHeight() != bitmap.getHeight() ||
                 System.currentTimeMillis() - mLastKeyframe > KEYFRAME_PERIOD) {
             mLastKeyframe = System.currentTimeMillis();
-            ret = Collections.singletonList(new Patch<>(new Point(0, 0), bitmap));
+            patches = Collections.singleton(new Patch<>(new Point(0, 0), bitmap));
         } else {
-            ret = diff(mLast, bitmap);
+            patches = diff(mLast, bitmap);
         }
         mLast = bitmap;
-        return ret;
+        return new PatchSet<>(bitmap.getWidth(), bitmap.getHeight(), patches);
     }
 }

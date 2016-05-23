@@ -46,7 +46,7 @@ public class Uploader implements Func1<PatchSet<byte[]>, Uploader.Stats> {
             Log.i(TAG, "Uploading frame " + endpoint + " ...");
             final HttpURLConnection conn = (HttpURLConnection) endpoint.openConnection();
             try {
-                //conn.setConnectTimeout(2500);
+                conn.setConnectTimeout(2500);
                 conn.setReadTimeout(4000);
                 conn.setDoOutput(true);
                 conn.setRequestMethod("PUT");

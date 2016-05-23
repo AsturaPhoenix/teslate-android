@@ -128,7 +128,7 @@ public class CastingService extends Service {
                 final String c;
                 try {
                     c = p.poll();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     mErrors.call(e);
                     continue;
                 }
@@ -145,7 +145,7 @@ public class CastingService extends Service {
 
         //startInstrumentation(new ComponentName(this, Instrumentation.class), null, null);
 
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     @Nullable

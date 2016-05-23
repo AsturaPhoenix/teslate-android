@@ -8,6 +8,8 @@ import com.google.common.io.ByteStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URLConnection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,7 +18,14 @@ public class CommandPuller {
     private final Settings mSettings;
 
     public String poll() throws IOException {
-        final InputStream i = (InputStream)mSettings.getCommandEndpoint().getContent();
-        return i == null? null : new String(ByteStreams.toByteArray(i));
+        final HttpURLConnection conn = (HttpURLConnection)mSettings.getCommandEndpoint().openConnection();
+        try {
+            conn.setConnectTimeout(2500);
+            conn.setReadTimeout(15000);
+            final InputStream i = (InputStream) conn.getContent();
+            return i == null ? null : new String(ByteStreams.toByteArray(i));
+        } finally {
+            conn.disconnect();
+        }
     }
 }

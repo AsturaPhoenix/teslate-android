@@ -46,7 +46,8 @@ public class Settings {
                 mOnError.call(e);
             }
             try {
-                mCommandEndpoint = new URL("https://teslate-server.appspot.com/command/" + mSessionId);
+                mCommandEndpoint = new URL("https://teslate-server.appspot.com/command/" +
+                        mSessionId);
             } catch (final MalformedURLException e) {
                 mOnError.call(e);
             }

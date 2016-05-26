@@ -20,7 +20,6 @@ import android.view.MotionEvent;
 import android.view.WindowManager;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import lombok.RequiredArgsConstructor;
@@ -298,71 +297,57 @@ public class CastingService extends Service {
                 return;
             }
 
-            final String[] majorParts = payload.split("\\|");
+            for (final String command : payload.split("\n")) {
+                final String[] majorParts = command.split("\\|");
 
-            try {
-                final UiAutomation ui = Instrumentation.INSTANCE.getUiAutomation();
-                final String cmd = majorParts[0];
-                if ("MC".equals(cmd)) {
-                    final PointF pt = translateCoords(majorParts[1]);
+                try {
+                    final UiAutomation ui = Instrumentation.INSTANCE.getUiAutomation();
+                    final String cmd = majorParts[1];
+                    if ("MD".equals(cmd)) {
+                        final PointF pt = translateCoords(majorParts[2]);
 
-                    final long downTime = SystemClock.uptimeMillis();
-                    MotionEvent evt =
-                            createMotionEvent(downTime, MotionEvent.ACTION_DOWN, pt.x, pt.y);
-                    ui.injectInputEvent(evt, true);
-                    evt.recycle();
-                    evt = createMotionEvent(downTime, MotionEvent.ACTION_UP, pt.x, pt.y);
-                    ui.injectInputEvent(evt, true);
-                    evt.recycle();
-                } else if ("MD".equals(cmd)) {
-                    final PointF p1 = translateCoords(majorParts[1]),
-                            p2 = translateCoords(majorParts[2]);
-                    final long downTime = SystemClock.uptimeMillis();
-                    Async.start(() -> {
+                        final long downTime = SystemClock.uptimeMillis();
                         final MotionEvent evt =
-                                createMotionEvent(downTime, MotionEvent.ACTION_DOWN, p1.x, p1.y);
+                                createMotionEvent(downTime, MotionEvent.ACTION_DOWN, pt.x, pt.y);
                         ui.injectInputEvent(evt, true);
                         evt.recycle();
-                        return null;
-                    }).delay(150, TimeUnit.MILLISECONDS)
-                            .map(x -> {
-                                final MotionEvent evt =
-                                        createMotionEvent(downTime, MotionEvent.ACTION_MOVE,
-                                                (2 * p1.x + p2.x) / 3, (2 * p1.y + p2.y) / 3);
-                                ui.injectInputEvent(evt, true);
-                                evt.recycle();
-                                return null;
-                            })
-                            .delay(150, TimeUnit.MILLISECONDS)
-                            .map(x -> {
-                                final MotionEvent evt =
-                                        createMotionEvent(downTime, MotionEvent.ACTION_MOVE,
-                                                (p1.x + 2 * p2.x) / 3, (p1.y + 2 * p2.y) / 3);
-                                ui.injectInputEvent(evt, true);
-                                evt.recycle();
-                                return null;
-                            })
-                            .delay(150, TimeUnit.MILLISECONDS)
-                            .subscribe(x -> {
-                                final MotionEvent evt =
-                                        createMotionEvent(downTime, MotionEvent.ACTION_UP,
-                                                p2.x, p2.y);
-                                ui.injectInputEvent(evt, true);
-                                evt.recycle();
-                            }, Throwable::printStackTrace);
-                } else if ("B".equals(cmd)) {
-                    ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                } else if ("H".equals(cmd)) {
-                    ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
-                } else if ("R".equals(cmd)) {
-                    ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                } else if ("ZI".equals(cmd)) {
-                    pinch(ui, .125f);
-                } else if ("ZO".equals(cmd)) {
-                    pinch(ui, -.11f);
+                    } else if ("MU".equals(cmd)) {
+                        final PointF pt = translateCoords(majorParts[2]);
+
+                        final long downTime = SystemClock.uptimeMillis();
+                        final MotionEvent evt =
+                                createMotionEvent(downTime, MotionEvent.ACTION_UP, pt.x, pt.y);
+                        ui.injectInputEvent(evt, true);
+                        evt.recycle();
+                    } else if ("MM".equals(cmd)) {
+                        final PointF pt = translateCoords(majorParts[2]);
+
+                        final long downTime = SystemClock.uptimeMillis();
+
+                        final MotionEvent evt =
+                                createMotionEvent(downTime, MotionEvent.ACTION_MOVE, pt.x, pt.y);
+                        ui.injectInputEvent(evt, true);
+                        evt.recycle();
+                    } else if ("B".equals(cmd)) {
+                        ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+                    } else if ("H".equals(cmd)) {
+                        ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+                    } else if ("R".equals(cmd)) {
+                        ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
+                    } else if ("ZI".equals(cmd)) {
+                        pinch(ui, .125f);
+                    } else if ("ZO".equals(cmd)) {
+                        pinch(ui, -.11f);
+                    }
+                } catch (final RuntimeException e) {
+                    e.printStackTrace();
                 }
-            } catch (final RuntimeException e) {
-                e.printStackTrace();
+
+                try {
+                    Thread.sleep(200);
+                } catch (final InterruptedException e) {
+                    Log.w(TAG, e);
+                }
             }
         }
     }

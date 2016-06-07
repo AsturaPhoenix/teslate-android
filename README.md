@@ -23,7 +23,7 @@ For more information:
 1. In your car browser, navigate to https://teslate-server.appspot.com. The webpage will generate and append a random session ID to the URL. Alternatively, you can enter your own unique session ID as a query string after the URL (e.g. https://teslate-server.appspot.com?my-session). You may want to bookmark this URL.
 2. Start the Teslate Android app.
 3. If the app shows a message saying "ADB injection required for remote input", you will need to perform step 2 under installation instructions again. This is necessary for remote input any time the device is restarted, and from time to time thereafter.
-4. Set the session ID to your session ID. THIS IS NOT YET IMPLEMENTED. THE SESSION IS HARD-CODED TO "nautilus".
+4. Set the session ID to your session ID.
 5. In the Android app, tap the "Start Server" button.
 
 # Data usage

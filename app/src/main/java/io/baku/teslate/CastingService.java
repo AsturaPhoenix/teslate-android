@@ -1,6 +1,9 @@
 package io.baku.teslate;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.app.UiAutomation;
 import android.content.Context;
@@ -13,11 +16,13 @@ import android.net.TrafficStats;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.view.WindowMetrics;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +46,8 @@ public class CastingService extends Service {
     public static final long
             SNAPSHOT_PERIOD = 250;
 
-    public static final int SCALE = 6;
+    private static final String NOTIFICATION_CHANNEL = "notifications";
+    private static final int NOTIFICATION_ID = 1;
 
     public static boolean sRunning;
 
@@ -59,7 +65,10 @@ public class CastingService extends Service {
 
     private static byte[] compress(final Bitmap bmp) {
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        return bmp.compress(Bitmap.CompressFormat.WEBP, 30, bout) ? bout.toByteArray() : null;
+        final byte[] compressed = bmp.compress(Bitmap.CompressFormat.WEBP_LOSSY,
+                30, bout) ? bout.toByteArray() : null;
+        bmp.recycle();
+        return compressed;
     }
 
     private Settings mSettings;
@@ -90,6 +99,24 @@ public class CastingService extends Service {
                 mLat16Sum >> 4));
     }
 
+    private void startForeground() {
+        final NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL,
+                "Teslate", NotificationManager.IMPORTANCE_LOW);
+        NotificationManager service = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        service.createNotificationChannel(channel);
+
+        Notification notification =
+                new Notification.Builder(this, NOTIFICATION_CHANNEL)
+                        .build();
+
+        startForeground(NOTIFICATION_ID, notification);
+    }
+
+    private WindowMetrics getWindowMetrics() {
+        return ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getMaximumWindowMetrics();
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mStartedAt = System.currentTimeMillis();
@@ -99,6 +126,8 @@ public class CastingService extends Service {
 
         mErrors = new ErrorReporter(this);
 
+        startForeground();
+
         final MediaProjectionManager pm = (MediaProjectionManager) getSystemService(
                 Context.MEDIA_PROJECTION_SERVICE);
 
@@ -107,9 +136,11 @@ public class CastingService extends Service {
 
         mSettings = new Settings(PreferenceManager.getDefaultSharedPreferences(this), mErrors);
 
+        final WindowMetrics metrics = getWindowMetrics();
         final Observable<Bitmap> snaps = Snapshotter.create(
                 pm.getMediaProjection(mpResult, mpIntent),
-                SNAPSHOT_PERIOD, 72 * SCALE, 128 * SCALE);
+                SNAPSHOT_PERIOD, metrics.getBounds().width() + 8, // why???
+                metrics.getBounds().height(), getResources().getConfiguration().densityDpi);
 
         final BitmapPatcher patcher = new BitmapPatcher(mSettings);
 
@@ -144,7 +175,7 @@ public class CastingService extends Service {
 
         //startInstrumentation(new ComponentName(this, Instrumentation.class), null, null);
 
-        return START_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     @Nullable
@@ -166,19 +197,13 @@ public class CastingService extends Service {
 
     //private final Instrumentation mI = new Instrumentation();
 
-    private Point getScreenSize() {
-        final WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        final Point windowSize = new Point();
-        wm.getDefaultDisplay().getSize(windowSize);
-        return windowSize;
-    }
-
     private PointF translateCoords(final String s) {
         final String[] coords = s.split(",");
         final float nx = Float.parseFloat(coords[0]), ny = Float.parseFloat(coords[1]);
 
-        final Point screenSize = getScreenSize();
-        return new PointF(nx * screenSize.x, ny * screenSize.y);
+        final WindowMetrics metrics = getWindowMetrics();
+        return new PointF(nx * metrics.getBounds().width(),
+                ny * metrics.getBounds().height());
     }
 
     private MotionEvent createMotionEvent(final long downTime, final int action,
@@ -194,7 +219,7 @@ public class CastingService extends Service {
             LOWER_BASE = .5f + MIN_DEVIATION;
 
     private void pinch(final UiAutomation ui, float delta) {
-        final Point screenSize = getScreenSize();
+        final WindowMetrics metrics = getWindowMetrics();
 
         final MotionEvent.PointerProperties[] p = new MotionEvent.PointerProperties[2];
         final MotionEvent.PointerCoords[][] c = new MotionEvent.PointerCoords[10][];
@@ -205,8 +230,8 @@ public class CastingService extends Service {
                 c[t] = new MotionEvent.PointerCoords[2];
                 c[t][0] = new MotionEvent.PointerCoords();
                 c[t][1] = new MotionEvent.PointerCoords();
-                c[t][0].y = (UPPER_BASE - t * delta / (c.length - 1)) * screenSize.y;
-                c[t][1].y = (LOWER_BASE + t * delta / (c.length - 1)) * screenSize.y;
+                c[t][0].y = (UPPER_BASE - t * delta / (c.length - 1)) * metrics.getBounds().height();
+                c[t][1].y = (LOWER_BASE + t * delta / (c.length - 1)) * metrics.getBounds().height();
             }
         } else {
             for (int t = 0; t < c.length; t++) {
@@ -214,9 +239,9 @@ public class CastingService extends Service {
                 c[t][0] = new MotionEvent.PointerCoords();
                 c[t][1] = new MotionEvent.PointerCoords();
                 c[t][0].y = (UPPER_BASE + (c.length - 1 - t) * delta / (c.length - 1)) *
-                        screenSize.y;
+                        metrics.getBounds().height();
                 c[t][1].y = (LOWER_BASE - (c.length - 1 - t) * delta / (c.length - 1)) *
-                        screenSize.y;
+                        metrics.getBounds().height();
             }
         }
 
@@ -226,7 +251,7 @@ public class CastingService extends Service {
             p[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
 
             for (int j = 0; j < c.length; j++) {
-                c[j][i].x = screenSize.x / 2;
+                c[j][i].x = metrics.getBounds().width() / 2;
                 c[j][i].pressure = 1;
                 c[j][i].size = 1;
             }

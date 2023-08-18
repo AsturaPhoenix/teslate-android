@@ -24,7 +24,7 @@ public class Settings {
     private final Action1<Throwable> mOnError;
 
     public String getSessionId() {
-        return mPrefs.getString(PREF_SESSION_ID, null);
+        return mPrefs.getString(PREF_SESSION_ID, "");
     }
 
     public void setSessionId(final String sessionId) {
@@ -40,13 +40,13 @@ public class Settings {
         if (!Objects.equals(curSessId, mSessionId)) {
             mSessionId = curSessId;
             try {
-                mFrameEndpoint = new URL("https://teslate-server.appspot.com/frame/" + mSessionId +
+                mFrameEndpoint = new URL("https://teslate.appspot.com/frame/" + mSessionId +
                         "/frame.jpeg");
             } catch (final MalformedURLException e) {
                 mOnError.call(e);
             }
             try {
-                mCommandEndpoint = new URL("https://teslate-server.appspot.com/command/" +
+                mCommandEndpoint = new URL("https://teslate.appspot.com/command/" +
                         mSessionId);
             } catch (final MalformedURLException e) {
                 mOnError.call(e);

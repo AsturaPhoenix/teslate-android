@@ -1,50 +1,43 @@
-apply plugin: 'com.android.application'
-/*
-You might have to download JDK8 and set JAVA8_HOME (or set the jdk to Java 8 via Project Structure).
-For detailed instructions, see https://github.com/evant/gradle-retrolambda
- */
-apply plugin: 'me.tatarka.retrolambda'
+plugins {
+    alias(libs.plugins.androidApplication)
+}
 
 android {
+    namespace 'io.baku.teslate'
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    compileSdk 34
 
     defaultConfig {
         applicationId "io.baku.teslate"
-        minSdkVersion 21
-        targetSdkVersion 23
+        minSdk 30
+        targetSdk 34
         versionCode 1
         versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
-        debug {
-            multiDexEnabled true
-        }
         release {
             minifyEnabled false
-            multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
 
 dependencies {
-    // https://projectlombok.org/setup/android.html
-    // Follow Android Studio instructions at the bottom of the page to install the Lombok Plugin.
-    provided 'org.projectlombok:lombok:1.16.8'
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile (
-            'com.android.support:design:22.2.0',
-            'com.android.support.test.uiautomator:uiautomator-v18:2.1.1',
-            'com.google.guava:guava:19.0',
-            'io.reactivex:rxandroid:1.0.1',
-            'io.reactivex:rxjava:1.0.16',
-            'io.reactivex:rxjava-async-util:0.21.0',
-    )
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    implementation libs.rxandroid
+    testImplementation libs.junit
+    implementation libs.androidx.annotation
+    implementation libs.guava
+    implementation libs.rxjava
+    implementation libs.rxjava.async.util
+    implementation libs.material
+    implementation libs.uiautomator.v18
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
 }
 

@@ -1,0 +1,26 @@
+[versions]
+agp = "8.1.0"
+annotation = "1.6.0"
+guava = "28.2-android"
+junit = "4.13.2"
+lombok = "1.18.28"
+material = "1.9.0"
+rxandroid = "1.0.1"
+rxjava = "1.0.16"
+rxjava-async-util = "0.21.0"
+uiautomator-v18 = "2.2.0"
+
+[libraries]
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+rxandroid = { module = "io.reactivex:rxandroid", version.ref = "rxandroid" }
+rxjava = { module = "io.reactivex:rxjava", version.ref = "rxjava" }
+rxjava-async-util = { module = "io.reactivex:rxjava-async-util", version.ref = "rxjava-async-util" }
+uiautomator-v18 = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator-v18" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+

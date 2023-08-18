@@ -6,6 +6,7 @@ package io.baku.teslate;
 
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
@@ -20,12 +21,12 @@ import rx.schedulers.Schedulers;
 
 public class Snapshotter {
     public static Observable<Bitmap> create(final MediaProjection mediaProjection,
-                                            final long period, final int w, final int h) {
+                                            final long period, final int w, final int h, final int dpi) {
         return Observable.<Bitmap>create(s -> {
             final ImageReader imageReader = ImageReader.newInstance(w, h,
-                    ImageFormat.JPEG, 2);
+                    PixelFormat.RGBA_8888, 2);
             final VirtualDisplay display = mediaProjection.createVirtualDisplay("Teslate", w, h,
-                    96, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, imageReader.getSurface(), null,
+                    dpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, imageReader.getSurface(), null,
                     null);
 
             s.add(Observable.interval(0, period, TimeUnit.MILLISECONDS)

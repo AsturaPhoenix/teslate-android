@@ -7,7 +7,6 @@ import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.Formatter;
@@ -15,10 +14,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.activity.ComponentActivity;
+
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends ComponentActivity {
     private static final int
             SCREEN_CAP_PERMS = 0;
 
@@ -126,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                 final Intent intent = new Intent(this, CastingService.class);
                 intent.putExtra(CastingService.MP_RESULT, resultCode);
                 intent.putExtra(CastingService.MP_INTENT, data);
-                startService(intent);
+                startForegroundService(intent);
                 break;
             default:
                 super.onActivityResult(requestCode, resultCode, data);

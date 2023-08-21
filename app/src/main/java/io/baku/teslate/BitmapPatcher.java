@@ -31,20 +31,15 @@ public class BitmapPatcher implements Func1<Bitmap, PatchSet<Bitmap>> {
     private final Settings mSettings;
 
     private static final long KEYFRAME_PERIOD = 30000;
-    private static final int RES = 2, SCAN_RES = 2;
-
-    private static final Matrix SCALE = new Matrix();
-    static {
-        SCALE.postScale(1.0f / RES, 1.0f / RES);
-    }
+    private static final int RES = 5;
 
     private List<Patch<Bitmap>> diff(final Bitmap orig, final Bitmap next) {
         final int colorThreshold = mSettings.getFrameColorThreshold();
-        final PatchAccumulator p = new PatchAccumulator(SCAN_RES * 3);
+        final PatchAccumulator p = new PatchAccumulator(RES * 3);
 
-        for (int y = 0, sy = 0; sy < orig.getHeight(); y += SCAN_RES, sy += RES * SCAN_RES) {
-            for (int x = 0, sx = 0; sx < orig.getWidth(); x += SCAN_RES, sx += RES * SCAN_RES) {
-                if (diff(orig.getPixel(sx, sy), next.getPixel(sx, sy), colorThreshold)) {
+        for (int y = 0; y < orig.getHeight(); y += RES) {
+            for (int x = 0; x < orig.getWidth(); x += RES) {
+                if (diff(orig.getPixel(x, y), next.getPixel(x, y), colorThreshold)) {
                     p.submit(x, y);
                 }
             }
@@ -52,13 +47,12 @@ public class BitmapPatcher implements Func1<Bitmap, PatchSet<Bitmap>> {
 
         for (Rect r : p.clusters) {
             //noinspection CheckResult
-            r.intersect(0, 0, orig.getWidth() / RES, orig.getHeight() / RES);
+            r.intersect(0, 0, orig.getWidth(), orig.getHeight());
         }
-        return ImmutableList.copyOf(Collections2.transform(p.clusters, r -> {
-            final Bitmap downsampled = Bitmap.createBitmap(
-                    next, r.left * RES, r.top * RES, r.width() * RES, r.height() * RES, SCALE, false);
-            return new Patch<>(new Point(r.left, r.top), downsampled);
-        }));
+        return ImmutableList.copyOf(Collections2.transform(p.clusters, r ->
+                new Patch<>(new Point(r.left, r.top), Bitmap.createBitmap(
+                        next, r.left, r.top, r.width(), r.height()))
+        ));
     }
 
     private Bitmap mLast;
@@ -70,23 +64,17 @@ public class BitmapPatcher implements Func1<Bitmap, PatchSet<Bitmap>> {
 
     @Override
     public PatchSet<Bitmap> call(final Bitmap bitmap) {
-        int sw = bitmap.getWidth() / RES, sh = bitmap.getHeight() / RES;
         Collection<Patch<Bitmap>> patches;
         if (mLast == null ||
                 mLast.getWidth() != bitmap.getWidth() ||
                 mLast.getHeight() != bitmap.getHeight() ||
                 System.currentTimeMillis() - mLastKeyframe > KEYFRAME_PERIOD) {
             mLastKeyframe = System.currentTimeMillis();
-
-            final Bitmap downsampled = Bitmap.createBitmap(
-                    bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), SCALE, false);
-
-            patches = Collections.singleton(new Patch<>(new Point(0, 0), downsampled));
+            patches = Collections.singleton(new Patch<>(new Point(0, 0), bitmap));
         } else {
             patches = diff(mLast, bitmap);
-            mLast.recycle();
         }
         mLast = bitmap;
-        return new PatchSet<>(sw, sh, patches);
+        return new PatchSet<>(bitmap.getWidth(), bitmap.getHeight(), patches);
     }
 }

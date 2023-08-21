@@ -16,6 +16,8 @@ import android.widget.TextView;
 
 import androidx.activity.ComponentActivity;
 
+import java.io.IOException;
+
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 

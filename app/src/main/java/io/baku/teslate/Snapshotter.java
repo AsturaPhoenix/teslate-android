@@ -5,8 +5,10 @@
 package io.baku.teslate;
 
 import android.graphics.Bitmap;
+import android.graphics.ColorSpace;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
+import android.hardware.HardwareBuffer;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
@@ -41,10 +43,12 @@ public class Snapshotter {
                         final Bitmap bmp;
                         try (final Image img = imageReader.acquireLatestImage()) {
                             if (img == null) return;
-                            bmp = Bitmap.createBitmap(img.getWidth(), img.getHeight(),
-                                    Bitmap.Config.ARGB_8888);
-                            final Buffer buffer = img.getPlanes()[0].getBuffer().rewind();
-                            bmp.copyPixelsFromBuffer(buffer);
+                            try (final HardwareBuffer buffer = img.getHardwareBuffer()) {
+                                final Bitmap source = Bitmap.wrapHardwareBuffer(
+                                        buffer, null);
+                                bmp = source.copy(Bitmap.Config.RGB_565, false);
+                                source.recycle();
+                            }
                         }
                         s.onNext(bmp);
                     }, s::onError));

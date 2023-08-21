@@ -46,6 +46,8 @@ public class CastingService extends Service {
     public static final long
             SNAPSHOT_PERIOD = 250;
 
+    public static final int RES = 2;
+
     private static final String NOTIFICATION_CHANNEL = "notifications";
     private static final int NOTIFICATION_ID = 1;
 
@@ -67,7 +69,6 @@ public class CastingService extends Service {
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
         final byte[] compressed = bmp.compress(Bitmap.CompressFormat.WEBP_LOSSY,
                 30, bout) ? bout.toByteArray() : null;
-        bmp.recycle();
         return compressed;
     }
 
@@ -138,9 +139,9 @@ public class CastingService extends Service {
 
         final WindowMetrics metrics = getWindowMetrics();
         final Observable<Bitmap> snaps = Snapshotter.create(
-                pm.getMediaProjection(mpResult, mpIntent),
-                SNAPSHOT_PERIOD, metrics.getBounds().width() + 8, // why???
-                metrics.getBounds().height(), getResources().getConfiguration().densityDpi);
+                pm.getMediaProjection(mpResult, mpIntent), SNAPSHOT_PERIOD,
+                metrics.getBounds().width() / RES, metrics.getBounds().height() / RES,
+                getResources().getConfiguration().densityDpi / RES);
 
         final BitmapPatcher patcher = new BitmapPatcher(mSettings);
 
@@ -163,7 +164,7 @@ public class CastingService extends Service {
                     continue;
                 }
 
-                if (c != null) {
+                if (c != null && !c.isEmpty()) {
                     s.onNext(c);
                 }
             }

@@ -9,7 +9,6 @@ import android.app.UiAutomation;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Point;
 import android.graphics.PointF;
 import android.media.projection.MediaProjectionManager;
 import android.net.TrafficStats;
@@ -69,6 +68,9 @@ public class CastingService extends Service {
         final ByteArrayOutputStream bout = new ByteArrayOutputStream();
         final byte[] compressed = bmp.compress(Bitmap.CompressFormat.WEBP_LOSSY,
                 30, bout) ? bout.toByteArray() : null;
+
+        Log.i(TAG, "Compressed " + bmp.getWidth() + " x " + bmp.getHeight() + " patch to " + compressed.length + " B");
+
         return compressed;
     }
 
